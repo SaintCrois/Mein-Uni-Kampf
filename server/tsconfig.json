@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src", "prisma", "tests"]
+}

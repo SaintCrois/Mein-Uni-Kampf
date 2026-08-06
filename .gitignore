@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+# env & secrets
+.env
+*.env
+!.env.example
+# build output
+dist/
+build/
+# prisma
+server/prisma/*.db
+# logs & OS
+*.log
+.DS_Store
