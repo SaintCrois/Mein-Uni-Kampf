@@ -26,6 +26,13 @@ export default function App() {
         {state === "loading" ? "Loading…" : "Check System"}
       </button>
 
+      <div className="container mt-5">
+        <div className="alert alert-success shadow-sm" role="alert">
+          <h4 className="alert-heading">TokTickIT Project Foundation</h4>
+          <p className="mb-0">Bootstrap is successfully installed and visible!</p>
+        </div>
+      </div>
+
       {/* TODO(Issue 4): render loading / success (Online + categories) / error (Offline) states. */}
     </div>
   );
