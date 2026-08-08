@@ -19,7 +19,10 @@ app.use(express.json());
 // ---------------------------------------------------------------------------
 app.get("/api/health", (_req: Request, res: Response) => {
   // TODO(Issue 2): replace this stub with the required 200 response.
-  res.status(501).json({ error: "Not implemented yet" });
+  res.status(200).json({
+    status: "ok",
+    service: "TokTickIT API",
+  });
 });
 
 // ---------------------------------------------------------------------------

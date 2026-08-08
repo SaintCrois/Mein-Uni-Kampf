@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
@@ -7,7 +7,16 @@ type UiState = "idle" | "loading" | "success" | "error";
 export default function App() {
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [healthStatus, setHealthStatus] = useState<string>("Checking status...");
   void categories;
+
+  //Mein Issue 2
+  useEffect(() => {
+    fetch("http://localhost:3000/api/health")
+      .then((res) => res.json())
+      .then((data) => setHealthStatus(`Status: ${data.status} | Service: ${data.service}`))
+      .catch(() => setHealthStatus("Backend disconnected"));
+  }, []);
 
   async function handleCheck() {
     // TODO(Issue 4): set loading, call checkSystem(), then either
@@ -26,11 +35,8 @@ export default function App() {
         {state === "loading" ? "Loading…" : "Check System"}
       </button>
 
-      <div className="container mt-5">
-        <div className="alert alert-success shadow-sm" role="alert">
-          <h4 className="alert-heading">TokTickIT Project Foundation</h4>
-          <p className="mb-0">Bootstrap is successfully installed and visible!</p>
-        </div>
+      <div className="alert alert-info mt-4" role="alert">
+        <strong>API Health:</strong> {healthStatus}
       </div>
 
       {/* TODO(Issue 4): render loading / success (Online + categories) / error (Offline) states. */}
