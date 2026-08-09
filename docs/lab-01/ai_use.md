@@ -19,7 +19,8 @@ How to do:... (where while file which code to paste)
 
 Copy paste block(code) *I throw file of leb sheet into it*| result as expected step by step guide.
 | 2 | (Issue 2) tell methe plan where we look into step by step and what we do in 1 sentences| Exact path of which file we look into what we do in words no code yet, mentioned test file etc. |
-| 3 | | |
+| 3 | "I pasted error message" What is this tell me what's wrong which line what to replace why?| "Points out which line tell me what to paste" |
+| 4 | "I pasted Issue checklist" check if what we've done completed everything in the list| "Yes" and list what we've done. |
 
 ## Reflection
 Two or three sentences: what made your prompts better, and one place you had to

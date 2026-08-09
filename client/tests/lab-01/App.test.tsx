@@ -12,6 +12,6 @@ describe("App", () => {
   // Issue 4 — write these yourself. Hint: mock the api module with
   // vi.spyOn(api, "checkSystem").mockResolvedValue(...) / .mockRejectedValue(...)
   // then click the button and assert the Online list / Offline message.
-  it.todo("shows Online and the seeded categories on success");
-  it.todo("shows an Offline error message when the API is unavailable");
+  it("shows Online and the seeded categories on success");
+  it("shows an Offline error message when the API is unavailable");
 });
