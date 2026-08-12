@@ -21,15 +21,15 @@ server> npm test
 > vitest run
 
 
- RUN  v2.1.9 C:/XXXX/XXXX (idk should I be showin this)/Desktop/toktickit/server
+ RUN  v2.1.9 C:/Users/Cent/Desktop/toktickit/server
 
  ✓ tests/lab-01/categories.test.ts (1)
  ✓ tests/lab-01/health.test.ts (1)
 
  Test Files  2 passed (2)
       Tests  2 passed (2)
-   Start at  20:23:20
-   Duration  501ms (transform 51ms, setup 0ms, collect 376ms, tests 15ms, environment 0ms, prepare 218ms)
+   Start at  19:47:40
+   Duration  599ms (transform 55ms, setup 0ms, collect 388ms, tests 54ms, environment 0ms, prepare 331ms)
 
 *For 3-5:*
 
@@ -39,7 +39,7 @@ client> npm test
 > vitest run
 
 
- RUN  v2.1.9 C:/XXXX/XXXX/Desktop/toktickit/client
+ RUN  v2.1.9 C:/Users/XXXX/Desktop/toktickit/client
 
  ✓ tests/lab-01/App.test.tsx (3)
    ✓ App (3)
@@ -49,5 +49,5 @@ client> npm test
 
  Test Files  1 passed (1)
       Tests  3 passed (3)
-   Start at  20:24:20
-   Duration  14.69s (transform 58ms, setup 2.20s, collect 1.49s, tests 32ms, environment 10.40s, prepare 311ms)
+   Start at  19:41:30
+   Duration  18.42s (transform 87ms, setup 2.68s, collect 1.94s, tests 66ms, environment 12.59s, prepare 718ms)

@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import App from "../../src/App.js";
+import * as api from "../../src/api.js";
 
 describe("App", () => {
   // WORKED EXAMPLE — provided for you.
@@ -9,9 +10,39 @@ describe("App", () => {
     expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
   });
 
-  // Issue 4 — write these yourself. Hint: mock the api module with
-  // vi.spyOn(api, "checkSystem").mockResolvedValue(...) / .mockRejectedValue(...)
-  // then click the button and assert the Online list / Offline message.
-  it("shows Online and the seeded categories on success");
-  it("shows an Offline error message when the API is unavailable");
+  // Issue 4 — write these yourself.
+  it("shows Online and the seeded categories on success", async () => {
+    const mockCategories = [
+      { id: 1, name: "Account and Access" },
+      { id: 2, name: "Hardware" },
+      { id: 3, name: "Software" },
+      { id: 4, name: "Network" },
+    ];
+
+    vi.spyOn(api, "checkSystem").mockResolvedValue(mockCategories as any);
+
+    render(<App />);
+
+    const button = screen.getByText(/check system/i);
+    fireEvent.click(button);
+
+    expect(await screen.findByText(/online/i)).toBeInTheDocument();
+    expect(screen.getByText(/account and access/i)).toBeInTheDocument();
+    expect(screen.getByText(/hardware/i)).toBeInTheDocument();
+    expect(screen.getByText(/software/i)).toBeInTheDocument();
+    expect(screen.getByText(/network/i)).toBeInTheDocument();
+  });
+
+  it("shows an Offline error message when the API is unavailable", async () => {
+    vi.spyOn(api, "checkSystem").mockRejectedValue(
+      new Error("Failed to fetch category list.")
+    );
+
+    render(<App />);
+
+    const button = screen.getByText(/check system/i);
+    fireEvent.click(button);
+
+    expect(await screen.findByText(/offline/i)).toBeInTheDocument();
+  });
 });

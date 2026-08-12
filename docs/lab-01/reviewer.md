@@ -10,7 +10,7 @@
 | #1 | feature/1-project-foundation | Approved |
 | #2 | feature/2-health-check | Approved |
 | #3 | feature/3-category-seed | Approved |
-| #4 | feature/4-category-list | Pending |
+| #4 | feature/4-category-list | Approved |
 
 ---
 
@@ -33,8 +33,8 @@
 ---
 
 ### PR #4 (`feature/4-category-list`)
-**Reviewer comment I received:** 
-**How I responded:**
+**Reviewer comment I received:** All the code are being implemented also include all the necessary document
+**How I responded:** Heart Emoji, Thumb Emoji, Celebrate Emoji. Merged.
 
 ---
 
@@ -59,7 +59,12 @@
 ---
 
 ### Issue 4 (`feature/4-category-list`)
-**My comment:** Pending  
-**Partner's response:** Pending
+**My comment:** Nice, great work. Everything looks good and ready to merge:
+
+Backend Route: The GET /api/categories endpoint in server/src/app.ts correctly selects id and name, sorts by id: "asc", and properly handles error status codes (500).
+Testing: The Supertest suite in categories.test.ts cleanly verifies both the HTTP 200 response and the exact order of the 4 seeded categories.
+Documentation: docs/lab-01/ai_use.md and docs/lab-01/tests.md are updated
+Ok plz merge.  
+**Partner's response:** He said thank you for the review.
 
 ---
