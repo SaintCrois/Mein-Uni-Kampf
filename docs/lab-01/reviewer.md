@@ -33,8 +33,8 @@
 ---
 
 ### PR #4 (`feature/4-category-list`)
-**Reviewer comment I received:** All the code are being implemented also include all the necessary document
-**How I responded:** Heart Emoji, Thumb Emoji, Celebrate Emoji. Merged.
+**Reviewer comment I received:** All the code are being implemented also include all the necessary document. He warned me about the test.md file that isn't fixed. Then, he approved.
+**How I responded:** I fixed the test.md for both front and backend. After he approved, I add Heart Emoji, Thumb Emoji, Celebrate Emoji. Merged.
 
 ---
 
