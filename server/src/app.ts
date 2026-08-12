@@ -34,4 +34,14 @@ app.get("/api/health", (_req: Request, res: Response) => {
 // TODO(Issue 4): implement the route here.
 // ---------------------------------------------------------------------------
 
+app.get("/api/categories", async (_req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const categories = await prisma.category.findMany();
+    res.status(200).json(categories);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch categories" });
+  }
+});
+
 export default app;
