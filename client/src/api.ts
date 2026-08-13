@@ -17,5 +17,9 @@ export interface SystemStatus {
 // Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem(): Promise<SystemStatus> {
   // TODO(Issue 2 & 4): implement the two fetch calls described above.
-  throw new Error("checkSystem not implemented yet");
+  const response = await fetch("http://localhost:3000/api/categories");
+  if (!response.ok) {
+    throw new Error("Failed to fetch category list.");
+  }
+  return response.json()
 }
