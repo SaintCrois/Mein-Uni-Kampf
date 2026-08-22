@@ -1,6 +1,3 @@
-// Prisma schema — datasource and generator are pre-wired.
-// Your DATABASE_URL lives in server/.env (copy it from .env.example).
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,18 +7,93 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------------------------
-// Issue 3 — Create and seed IT request categories
-// Define a Category model with:
-//   id        Int      @id @default(autoincrement())
-//   name      String   @unique
-//   createdAt DateTime @default(now())
-// Then run:  npx prisma migrate dev --name init
-// TODO(Issue 3): add the Category model below.
-// ---------------------------------------------------------------------------
-
 model Category {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  isActive Boolean  @default(true)
+  tickets  Ticket[]
+}
+
+model Priority {
+  id               Int      @id @default(autoincrement())
+  name             String   @unique
+  sortOrder        Int      @unique
+  requestedTickets Ticket[] @relation("RequestedPriority")
+  assignedTickets  Ticket[] @relation("ItPriority")
+}
+
+model Status {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  isDefault Boolean  @default(false)
+  tickets   Ticket[]
+}
+
+model DevRequester {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  email     String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tickets   Ticket[]
+}
+
+model RelatedSystem {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  isActive Boolean  @default(true)
+  tickets  Ticket[]
+}
+
+model Ticket {
+  id                  Int           @id @default(autoincrement())
+  ticketNumber        String        @unique
+  requesterId         Int
+  categoryId          Int
+  relatedSystemId     Int
+  summary             String        @db.VarChar(150)
+  description         String        @db.VarChar(2000)
+  requestedPriorityId Int
+  itPriorityId        Int?
+  currentStatusId     Int
+  ownerId             Int?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  requester           DevRequester  @relation(fields: [requesterId], references: [id], onDelete: Restrict)
+  category            Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  relatedSystem       RelatedSystem @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)
+  requestedPriority   Priority      @relation("RequestedPriority", fields: [requestedPriorityId], references: [id], onDelete: Restrict)
+  itPriority          Priority?     @relation("ItPriority", fields: [itPriorityId], references: [id], onDelete: Restrict)
+  currentStatus       Status        @relation(fields: [currentStatusId], references: [id], onDelete: Restrict)
+  attachments         Attachment[]
+
+  @@index([ticketNumber])
+  @@index([requesterId])
+  @@index([categoryId])
+  @@index([requestedPriorityId])
+  @@index([currentStatusId])
+  @@index([createdAt])
+}
+
+enum AttachmentStatus {
+  ACTIVE
+  REMOVED
+}
+
+model Attachment {
+  id               Int              @id @default(autoincrement())
+  ticketId         Int
+  originalFileName String
+  storedFileName   String
+  mimeType         String
+  fileSize         Int
+  status           AttachmentStatus @default(ACTIVE)
+  removalReason    String?
+  removedAt        DateTime?
+  uploadedAt       DateTime         @default(now())
+  ticket           Ticket           @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId])
+  @@index([status])
 }
