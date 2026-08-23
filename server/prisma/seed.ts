@@ -46,7 +46,9 @@ async function main() {
       update: { isDefault: status.isDefault },
       create: status,
     });
+
   }
+  
 
   const requesters = [
     ["Narin Chaiyo", "narin.chaiyo@example.com"],
@@ -62,7 +64,15 @@ async function main() {
       create: { fullName, email, isActive: true },
     });
   }
-
+  await prisma.devRequester.upsert({
+    where: { email: "inactive.requester@example.com" },
+    update: { fullName: "Inactive Requester", isActive: false },
+    create: {
+      fullName: "Inactive Requester",
+      email: "inactive.requester@example.com",
+      isActive: false,
+    },
+  });
   const newStatus = await prisma.status.findUniqueOrThrow({ where: { name: "New" } });
   const lowPriority = await prisma.priority.findUniqueOrThrow({ where: { name: "Low" } });
   const requesterRows = await prisma.devRequester.findMany({ orderBy: { id: "asc" } });
