@@ -112,4 +112,28 @@ describe("POST /api/tickets/:ticketId/attachments", () => {
 
     expect(response.status).toBe(404);
   });
+
+  it("rejects more than 5 attachments", async () => {
+    const { requester, ticket } = await getTestData();
+
+    const upload = request(app)
+      .post(`/api/tickets/${ticket.id}/attachments`)
+      .set("X-Requester-Id", String(requester.id));
+
+    for (let i = 1; i <= 6; i++) {
+      upload.attach(
+        "files",
+        Buffer.from(`test attachment ${i}`),
+        {
+          filename: `test-${i}.pdf`,
+          contentType: "application/pdf",
+        },
+      );
+    }
+
+    const response = await upload;
+
+    expect(response.status).toBe(400);
+  });
+
 });

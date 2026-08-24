@@ -1,6 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import {createContext, useContext, useState, type ReactNode} from "react";
 
-type Requester = {
+export type Requester = {
   id: number;
   fullName: string;
   email: string;
@@ -10,23 +10,55 @@ type Requester = {
 type RequesterContextValue = {
   selectedRequester: Requester | null;
   setSelectedRequester: (requester: Requester | null) => void;
+  clearRequester: () => void;
 };
 
-const RequesterContext = createContext<RequesterContextValue | undefined>(
-  undefined,
-);
+const RequesterContext = createContext<
+  RequesterContextValue | undefined
+>(undefined);
 
 export function RequesterProvider({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  const [selectedRequester, setSelectedRequester] =
-    useState<Requester | null>(null);
+  const [selectedRequester, setSelectedRequesterState] =
+    useState<Requester | null>(() => {
+      const saved = localStorage.getItem("requester");
+
+      if (!saved) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(saved) as Requester;
+      } catch {
+        localStorage.removeItem("requester");
+        return null;
+      }
+    });
+
+  function setSelectedRequester(requester: Requester | null) {
+    setSelectedRequesterState(requester);
+
+    if (requester) {
+      localStorage.setItem("requester", JSON.stringify(requester));
+    } else {
+      localStorage.removeItem("requester");
+    }
+  }
+
+  function clearRequester() {
+    setSelectedRequester(null);
+  }
 
   return (
     <RequesterContext.Provider
-      value={{ selectedRequester, setSelectedRequester }}
+      value={{
+        selectedRequester,
+        setSelectedRequester,
+        clearRequester,
+      }}
     >
       {children}
     </RequesterContext.Provider>

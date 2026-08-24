@@ -337,4 +337,27 @@ describe("POST /api/tickets", () => {
     );
   });
 
+  it("rejects ticket creation without requester context", async () => {
+    const {
+      requester,
+      category,
+      relatedSystem,
+      priority,
+    } = await getTestData();
+
+    const response = await request(app)
+      .post("/api/tickets")
+      .send({
+        requesterId: requester.id,
+        categoryId: category.id,
+        relatedSystemId: relatedSystem.id,
+        summary: "Missing requester context test",
+        description: "This should be rejected.",
+        requestedPriorityId: priority.id,
+      });
+
+    expect(response.status).toBe(401);
+    expect(response.body.error).toBe("Requester context is required");
+  });
+
 });
