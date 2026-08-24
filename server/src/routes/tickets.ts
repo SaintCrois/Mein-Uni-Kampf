@@ -1,7 +1,18 @@
 import { Router } from "express";
 import { getPrisma } from "../prisma.js";
+import crypto from "node:crypto";
+import { requireRequester } from "../middleware/requester.js";
+
 
 const router = Router();
+router.use(requireRequester);
+
+const allowedPriorities = new Set([
+  "Low",
+  "Medium",
+  "High",
+  "Urgent",
+]);
 
 router.post("/", async (req, res) => {
   try {
@@ -14,10 +25,6 @@ router.post("/", async (req, res) => {
       requestedPriorityId,
     } = req.body;
 
-    // -----------------------------
-    // Basic validation
-    // -----------------------------
-
     if (
       !Number.isInteger(requesterId) ||
       !Number.isInteger(categoryId) ||
@@ -25,15 +32,22 @@ router.post("/", async (req, res) => {
       !Number.isInteger(requestedPriorityId)
     ) {
       return res.status(400).json({
-        error: "Invalid ID field",
+        error: "Invalid reference ID",
+      });
+    }
+
+    if (requesterId !== req.requesterId) {
+      return res.status(403).json({
+        error: "Requester does not match the authenticated requester",
       });
     }
 
     if (
       typeof summary !== "string" ||
       summary.trim().length === 0 ||
-      summary.length > 150
+      summary.trim().length > 150
     ) {
+
       return res.status(400).json({
         error: "Summary is required and must be 150 characters or fewer",
       });
@@ -42,39 +56,24 @@ router.post("/", async (req, res) => {
     if (
       typeof description !== "string" ||
       description.trim().length === 0 ||
-      description.length > 2000
+      description.trim().length > 2000
     ) {
       return res.status(400).json({
-        error:
-          "Description is required and must be 2000 characters or fewer",
+        error: "Description is required and must be 2000 characters or fewer",
       });
     }
 
     const prisma = getPrisma();
 
-    // -----------------------------
-    // Validate requester
-    // -----------------------------
-
     const requester = await prisma.devRequester.findUnique({
       where: { id: requesterId },
     });
 
-    if (!requester) {
+    if (!requester || !requester.isActive) {
       return res.status(400).json({
-        error: "Requester not found",
+        error: "Requester is invalid or inactive",
       });
     }
-
-    if (!requester.isActive) {
-      return res.status(400).json({
-        error: "Requester is inactive",
-      });
-    }
-
-    // -----------------------------
-    // Validate category
-    // -----------------------------
 
     const category = await prisma.category.findUnique({
       where: { id: categoryId },
@@ -86,10 +85,6 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // -----------------------------
-    // Validate related system
-    // -----------------------------
-
     const relatedSystem = await prisma.relatedSystem.findUnique({
       where: { id: relatedSystemId },
     });
@@ -100,23 +95,15 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // -----------------------------
-    // Validate requested priority
-    // -----------------------------
-
     const priority = await prisma.priority.findUnique({
       where: { id: requestedPriorityId },
     });
 
-    if (!priority) {
+    if (!priority || !allowedPriorities.has(priority.name)) {
       return res.status(400).json({
         error: "Requested priority is invalid",
       });
     }
-
-    // -----------------------------
-    // Initial status = New
-    // -----------------------------
 
     const newStatus = await prisma.status.findUnique({
       where: { name: "New" },
@@ -128,56 +115,42 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // -----------------------------
-    // Generate Ticket Number
-    // -----------------------------
+    /*
+     * Create with a temporary unique number first.
+     * Prisma/PostgreSQL generates the unique Ticket ID.
+     * We then derive the official number from that ID.
+     *
+     * This avoids the race condition of:
+     * SELECT MAX(number) -> +1 -> INSERT
+     */
+    const ticket = await prisma.$transaction(async (tx) => {
+      const temporaryNumber = `TMP-${crypto.randomUUID()}`;
 
-    const year = new Date().getFullYear();
-
-    const latestTicket = await prisma.ticket.findFirst({
-      where: {
-        ticketNumber: {
-          startsWith: `TKT-${year}-`,
+      const created = await tx.ticket.create({
+        data: {
+          ticketNumber: temporaryNumber,
+          requesterId,
+          categoryId,
+          relatedSystemId,
+          summary: summary.trim(),
+          description: description.trim(),
+          requestedPriorityId,
+          currentStatusId: newStatus.id,
+          itPriorityId: null,
+          ownerId: null,
         },
-      },
-      orderBy: {
-        ticketNumber: "desc",
-      },
-    });
+      });
 
-    let nextNumber = 1;
+      const year = new Date().getFullYear();
+      const officialNumber =
+        `TKT-${year}-${String(created.id).padStart(6, "0")}`;
 
-    if (latestTicket) {
-      const lastPart = latestTicket.ticketNumber.split("-").pop();
-
-      if (lastPart) {
-        const parsed = Number.parseInt(lastPart, 10);
-
-        if (Number.isInteger(parsed)) {
-          nextNumber = parsed + 1;
-        }
-      }
-    }
-
-    const ticketNumber = `TKT-${year}-${String(nextNumber).padStart(6, "0")}`;
-
-    // -----------------------------
-    // Create Ticket
-    // -----------------------------
-
-    const ticket = await prisma.ticket.create({
-      data: {
-        ticketNumber,
-        requesterId,
-        categoryId,
-        relatedSystemId,
-        summary: summary.trim(),
-        description: description.trim(),
-        requestedPriorityId,
-        currentStatusId: newStatus.id,
-        itPriorityId: null,
-        ownerId: null,
-      },
+      return tx.ticket.update({
+        where: { id: created.id },
+        data: {
+          ticketNumber: officialNumber,
+        },
+      });
     });
 
     return res.status(201).json({
@@ -189,7 +162,7 @@ router.post("/", async (req, res) => {
       summary: ticket.summary,
       description: ticket.description,
       requestedPriorityId: ticket.requestedPriorityId,
-      status: newStatus.name,
+      status: "New",
     });
   } catch (_error) {
     return res.status(500).json({

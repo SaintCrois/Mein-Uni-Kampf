@@ -1,22 +1,29 @@
 import { useState, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
+import { RequesterProvider, useRequester } from "./context/RequesterContext";
+import RequesterSelection from "./pages/RequesterSelection";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "idle" | "loading" | "success" | "error";
 
-export default function App() {
+function AppShell() {
+  const { selectedRequester, setSelectedRequester } = useRequester();
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
   const [healthStatus, setHealthStatus] = useState<string>("Checking status...");
   const [errorMessage, setErrorMessage] = useState<string>("");
-
+  
   //Mein Issue 2
   useEffect(() => {
     fetch("http://localhost:3000/api/health")
-      .then((res) => res.json())
-      .then((data) => setHealthStatus(`Status: ${data.status} | Service: ${data.service}`))
-      .catch(() => setHealthStatus("Backend disconnected"));
+    .then((res) => res.json())
+    .then((data) => setHealthStatus(`Status: ${data.status} | Service: ${data.service}`))
+    .catch(() => setHealthStatus("Backend disconnected"));
   }, []);
+  
+  if (!selectedRequester) {
+    return <RequesterSelection />;
+  }
 
   async function handleCheck() {
     // TODO(Issue 4): set loading, call checkSystem(), then either
@@ -37,9 +44,22 @@ export default function App() {
 
   return (
     <div className="container py-5" style={{ maxWidth: 640 }}>
-      <h1 className="h3 mb-4">
-        TokTickIT <span className="text-success">IT Service Desk</span>
-      </h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0">
+          TokTickIT <span className="text-success">IT Service Desk</span>
+        </h1>
+
+        <div className="text-end">
+          <div className="fw-bold">{selectedRequester.fullName}</div>
+          <button
+            type="button"
+            className="btn btn-outline-success btn-sm mt-1"
+            onClick={() => setSelectedRequester(null)}
+          >
+            Change Requester
+          </button>
+        </div>
+      </div>
 
       <button className="btn btn-success" onClick={handleCheck} disabled={state === "loading"}>
         {state === "loading" ? "Loading…" : "Check System"}
@@ -72,5 +92,13 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <RequesterProvider>
+      <AppShell />
+    </RequesterProvider>
   );
 }

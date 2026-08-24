@@ -22,6 +22,7 @@ async function main() {
   }
 
   const priorities = [
+    { name: "Urgent", sortOrder: 4 },
     { name: "High", sortOrder: 3 },
     { name: "Medium", sortOrder: 2 },
     { name: "Low", sortOrder: 1 },

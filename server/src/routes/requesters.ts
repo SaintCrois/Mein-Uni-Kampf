@@ -3,7 +3,7 @@ import { getPrisma } from "../prisma.js";
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
+async function getActiveRequesters(_req: unknown, res: any) {
   try {
     const prisma = getPrisma();
 
@@ -24,6 +24,9 @@ router.get("/", async (_req, res) => {
       error: "Failed to fetch development requesters",
     });
   }
-});
+}
+
+router.get("/", getActiveRequesters);
+router.get("/active", getActiveRequesters);
 
 export default router;
