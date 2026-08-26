@@ -59,9 +59,9 @@ export interface CreateTicketResponse {
   categoryId: number;
   relatedSystemId: number;
   summary: string;
-  requestedPriority: string;
   description: string;
-  currentStatus: string;
+  requestedPriorityId: number;
+  status: string;
 }
 
 export async function getActiveRequesters(): Promise<Requester[]> {
