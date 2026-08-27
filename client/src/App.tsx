@@ -1,14 +1,25 @@
 import { useState } from "react";
-import { RequesterProvider, useRequester } from "./context/RequesterContext";
+import {
+  RequesterProvider,
+  useRequester,
+} from "./context/RequesterContext";
 import RequesterSelection from "./pages/RequesterSelection";
 import CreateTicket from "./pages/CreateTicket";
 import { checkSystem } from "./api";
 
 function AppContent() {
-  const { selectedRequester, setSelectedRequester } = useRequester();
+  const {
+    selectedRequester,
+    setSelectedRequester,
+  } = useRequester();
 
-  const [page, setPage] = useState<"home" | "create-ticket">("home");
-  const [healthStatus, setHealthStatus] = useState("Not checked");
+  const [page, setPage] = useState<
+    "home" | "create-ticket" | "change-requester"
+  >("home");
+
+  const [healthStatus, setHealthStatus] =
+    useState("Not checked");
+
   const [categories, setCategories] = useState<
     { id: number; name: string }[]
   >([]);
@@ -19,7 +30,8 @@ function AppContent() {
 
       setHealthStatus("Online");
 
-      // Supports both the normal API result and the test mock.
+      // Supports both the normal API result
+      // and the test mock.
       if (Array.isArray(result)) {
         setCategories(result);
       } else {
@@ -31,13 +43,27 @@ function AppContent() {
     }
   }
 
+  function handleChangeRequester() {
+    setPage("change-requester");
+  }
+
+  function handleCancelChangeRequester() {
+    setPage("home");
+  }
+
+  function handleRequesterSelected() {
+    setPage("home");
+  }
+
   return (
     <div className="container py-4">
       <header className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h1 className="h3 mb-1">
             TokTickIT{" "}
-            <span className="text-success">IT Service Desk</span>
+            <span className="text-success">
+              IT Service Desk
+            </span>
           </h1>
 
           {selectedRequester && (
@@ -52,7 +78,9 @@ function AppContent() {
             <button
               type="button"
               className="btn btn-success"
-              onClick={() => setPage("create-ticket")}
+              onClick={() =>
+                setPage("create-ticket")
+              }
             >
               Create Ticket
             </button>
@@ -60,10 +88,7 @@ function AppContent() {
             <button
               type="button"
               className="btn btn-outline-secondary"
-              onClick={() => {
-                setPage("home");
-                setSelectedRequester(null);
-              }}
+              onClick={handleChangeRequester}
             >
               Change Requester
             </button>
@@ -71,8 +96,27 @@ function AppContent() {
         )}
       </header>
 
-      {page === "create-ticket" && selectedRequester ? (
+      {page === "create-ticket" &&
+      selectedRequester ? (
         <CreateTicket />
+      ) : page === "change-requester" ? (
+        <>
+          <div className="d-flex justify-content-end mb-3">
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={handleCancelChangeRequester}
+            >
+              Cancel
+            </button>
+          </div>
+
+          <RequesterSelection
+            onRequesterSelected={
+              handleRequesterSelected
+            }
+          />
+        </>
       ) : (
         <>
           <div className="mb-4">
@@ -97,7 +141,9 @@ function AppContent() {
 
               <ul className="mb-0 mt-2">
                 {categories.map((category) => (
-                  <li key={category.id}>{category.name}</li>
+                  <li key={category.id}>
+                    {category.name}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -115,7 +161,13 @@ function AppContent() {
             </div>
           )}
 
-          {!selectedRequester && <RequesterSelection />}
+          {!selectedRequester && (
+            <RequesterSelection
+              onRequesterSelected={
+                handleRequesterSelected
+              }
+            />
+          )}
         </>
       )}
     </div>
