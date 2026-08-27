@@ -60,9 +60,13 @@ export interface CreateTicketResponse {
   relatedSystemId: number;
   summary: string;
   description: string;
-  requestedPriorityId: number;
-  status: string;
+  requestedPriorityId?: number;
+  requestedPriority?: string;
+  status?: string;
+  currentStatus?: string;
 }
+
+
 
 export async function getActiveRequesters(): Promise<Requester[]> {
   const response = await fetch(`${API_URL}/api/requesters/active`);
@@ -158,4 +162,36 @@ export async function getPriorities(): Promise<ReferenceItem[]> {
   }
 
   return response.json();
+}
+
+export interface MyTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  status: string;
+  createdAt?: string;
+}
+
+export async function getMyTickets(
+  requesterId: number,
+): Promise<MyTicket[]> {
+  const response = await fetch(
+    `${API_URL}/api/tickets`,
+    {
+      headers: {
+        "X-Requester-Id": String(requesterId),
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(
+      data?.error || "Failed to fetch tickets.",
+    );
+  }
+
+  const data = await response.json();
+
+  return data.data ?? data;
 }
