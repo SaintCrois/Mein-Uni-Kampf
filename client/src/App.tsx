@@ -5,7 +5,9 @@ import {
 } from "./context/RequesterContext";
 import RequesterSelection from "./pages/RequesterSelection";
 import CreateTicket from "./pages/CreateTicket";
+import MyTickets from "./pages/MyTickets";
 import { checkSystem } from "./api";
+
 
 function AppContent() {
   const {
@@ -14,8 +16,12 @@ function AppContent() {
   } = useRequester();
 
   const [page, setPage] = useState<
-    "home" | "create-ticket" | "change-requester"
+    "home" | "my-tickets" | "ticket-detail" | "create-ticket" | "change-requester"
   >("home");
+
+const [selectedTicketId, setSelectedTicketId] =
+  useState<number | null>(null);
+
 
   const [healthStatus, setHealthStatus] =
     useState("Not checked");
@@ -55,6 +61,12 @@ function AppContent() {
     setPage("home");
   }
 
+  function handleOpenTicket(ticketId: number) {
+    setSelectedTicketId(ticketId);
+    setPage("ticket-detail");
+  }
+
+
   return (
     <div className="container py-4">
       <header className="d-flex justify-content-between align-items-center mb-4">
@@ -75,6 +87,14 @@ function AppContent() {
 
         {selectedRequester && (
           <div className="d-flex gap-2">
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={() => setPage("my-tickets")}
+            >
+              My Tickets
+            </button>
+
             <button
               type="button"
               className="btn btn-success"
@@ -99,6 +119,17 @@ function AppContent() {
       {page === "create-ticket" &&
       selectedRequester ? (
         <CreateTicket />
+      ) : page === "my-tickets" &&
+      selectedRequester ? (
+        <MyTickets
+          onOpenTicket={handleOpenTicket}
+        />
+      ) : page === "ticket-detail" &&
+      selectedRequester &&
+      selectedTicketId !== null ? (
+        <div className="alert alert-info">
+          Ticket detail coming next.
+        </div>
       ) : page === "change-requester" ? (
         <>
           <div className="d-flex justify-content-end mb-3">

@@ -1,6 +1,14 @@
 import { Router } from "express";
 import multer from "multer";
 import { getPrisma } from "../prisma.js";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const UPLOAD_DIR = path.resolve(__dirname, "../../uploads");
 
 const router = Router();
 
@@ -111,13 +119,34 @@ router.post(
         });
       }
 
+      await mkdir(UPLOAD_DIR, { recursive: true });
+
+      const filesToStore = files.map((file) => {
+        const extension = path.extname(file.originalname);
+        const storedFileName = `${crypto.randomUUID()}${extension}`;
+
+        return {
+          file,
+          storedFileName,
+        };
+      });
+
+      await Promise.all(
+        filesToStore.map(({ file, storedFileName }) =>
+          writeFile(
+            path.join(UPLOAD_DIR, storedFileName),
+            file.buffer,
+          ),
+        ),
+      );
+
       const attachments = await prisma.$transaction(
-        files.map((file) =>
+        filesToStore.map(({ file, storedFileName }) =>
           prisma.attachment.create({
             data: {
               ticketId,
               originalFileName: file.originalname,
-              storedFileName: file.originalname,
+              storedFileName,
               mimeType: file.mimetype,
               fileSize: file.size,
               status: "ACTIVE",
@@ -126,12 +155,180 @@ router.post(
         ),
       );
 
+
       return res.status(201).json({
         data: attachments,
       });
     } catch (_error) {
       return res.status(500).json({
         error: "Attachment upload failed",
+      });
+    }
+  },
+);
+
+
+router.get(
+  "/:ticketId/attachments/:attachmentId",
+  async (req, res) => {
+    try {
+      const ticketId = Number(req.params.ticketId);
+      const attachmentId = Number(req.params.attachmentId);
+      const requesterId = Number(req.header("X-Requester-Id"));
+
+      if (
+        !Number.isInteger(ticketId) ||
+        !Number.isInteger(attachmentId) ||
+        !Number.isInteger(requesterId)
+      ) {
+        return res.status(400).json({
+          error: "Invalid ticket, attachment, or requester",
+        });
+      }
+
+      const prisma = getPrisma();
+
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+      });
+
+      if (!ticket) {
+        return res.status(404).json({
+          error: "Ticket not found",
+        });
+      }
+
+      if (ticket.requesterId !== requesterId) {
+        return res.status(403).json({
+          error: "Access denied",
+        });
+      }
+
+      const attachment = await prisma.attachment.findUnique({
+        where: { id: attachmentId },
+      });
+
+      if (!attachment || attachment.ticketId !== ticketId) {
+        return res.status(404).json({
+          error: "Attachment not found",
+        });
+      }
+
+      if (attachment.status !== "ACTIVE") {
+        return res.status(404).json({
+          error: "Attachment not found",
+        });
+      }
+
+      const filePath = path.join(
+        UPLOAD_DIR,
+        attachment.storedFileName,
+      );
+
+      res.setHeader("Content-Type", attachment.mimeType);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename*=UTF-8''${encodeURIComponent(
+          attachment.originalFileName,
+        )}`,
+      );
+
+      return res.sendFile(filePath, (error) => {
+        if (error && !res.headersSent) {
+          res.status(404).json({
+            error: "Attachment file not found",
+          });
+        }
+      });
+    } catch (_error) {
+      return res.status(500).json({
+        error: "Attachment download failed",
+      });
+    }
+  },
+);
+
+
+router.delete(
+  "/:ticketId/attachments/:attachmentId",
+  async (req, res) => {
+    try {
+      const ticketId = Number(req.params.ticketId);
+      const attachmentId = Number(req.params.attachmentId);
+      const requesterId = Number(req.header("X-Requester-Id"));
+
+      if (
+        !Number.isInteger(ticketId) ||
+        !Number.isInteger(attachmentId) ||
+        !Number.isInteger(requesterId)
+      ) {
+        return res.status(400).json({
+          error: "Invalid ticket, attachment, or requester",
+        });
+      }
+
+      const reason = req.body?.reason;
+
+      if (typeof reason !== "string" || reason.trim().length === 0) {
+        return res.status(400).json({
+          error: "Removal reason is required",
+        });
+      }
+
+      const prisma = getPrisma();
+
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+      });
+
+      if (!ticket) {
+        return res.status(404).json({
+          error: "Ticket not found",
+        });
+      }
+
+      if (ticket.requesterId !== requesterId) {
+        return res.status(403).json({
+          error: "Access denied",
+        });
+      }
+
+      const attachment = await prisma.attachment.findUnique({
+        where: { id: attachmentId },
+      });
+
+      if (!attachment || attachment.ticketId !== ticketId) {
+        return res.status(404).json({
+          error: "Attachment not found",
+        });
+      }
+
+      if (attachment.status !== "ACTIVE") {
+        return res.status(404).json({
+          error: "Attachment not found",
+        });
+      }
+
+      const removedAttachment = await prisma.attachment.update({
+        where: { id: attachmentId },
+        data: {
+          status: "REMOVED",
+          removalReason: reason.trim(),
+          removedAt: new Date(),
+        },
+      });
+
+      return res.status(200).json({
+        data: {
+          id: removedAttachment.id,
+          status: removedAttachment.status,
+          removalReason: removedAttachment.removalReason,
+          removedAt: removedAttachment.removedAt,
+        },
+      });
+    } catch (_error) {
+      return res.status(500).json({
+        error: "Attachment removal failed",
       });
     }
   },

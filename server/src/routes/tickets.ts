@@ -14,7 +14,40 @@ const allowedPriorities = new Set([
   "Urgent",
 ]);
 
+router.get("/", async (req, res) => {
+  try {
+    const prisma = getPrisma();
+
+    const tickets = await prisma.ticket.findMany({
+      where: {
+        requesterId: req.requesterId,
+      },
+      include: {
+        currentStatus: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      data: tickets.map((ticket) => ({
+        id: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        summary: ticket.summary,
+        status: ticket.currentStatus.name,
+        createdAt: ticket.createdAt,
+      })),
+    });
+  } catch (_error) {
+    return res.status(500).json({
+      error: "Failed to fetch tickets",
+    });
+  }
+});
+
 router.post("/", async (req, res) => {
+
   try {
     const {
       requesterId,
@@ -167,6 +200,86 @@ router.post("/", async (req, res) => {
   } catch (_error) {
     return res.status(500).json({
       error: "Failed to create ticket",
+    });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+
+    if (!Number.isInteger(ticketId)) {
+      return res.status(404).json({
+        error: "Ticket not found",
+      });
+    }
+
+    const prisma = getPrisma();
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        category: true,
+        relatedSystem: true,
+        requestedPriority: true,
+        currentStatus: true,
+        attachments: {
+          orderBy: {
+            uploadedAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: "Ticket not found",
+      });
+    }
+
+    if (ticket.requesterId !== req.requesterId) {
+      return res.status(403).json({
+        error: "Access denied",
+      });
+    }
+
+    return res.status(200).json({
+      id: ticket.id,
+      ticketNumber: ticket.ticketNumber,
+      summary: ticket.summary,
+      description: ticket.description,
+      category: {
+        id: ticket.category.id,
+        name: ticket.category.name,
+      },
+      relatedSystem: {
+        id: ticket.relatedSystem.id,
+        name: ticket.relatedSystem.name,
+      },
+      requestedPriority: {
+        id: ticket.requestedPriority.id,
+        name: ticket.requestedPriority.name,
+      },
+      currentStatus: {
+        id: ticket.currentStatus.id,
+        name: ticket.currentStatus.name,
+      },
+      createdAt: ticket.createdAt,
+      updatedAt: ticket.updatedAt,
+      attachments: ticket.attachments.map((attachment) => ({
+        id: attachment.id,
+        originalFileName: attachment.originalFileName,
+        mimeType: attachment.mimeType,
+        fileSize: attachment.fileSize,
+        status: attachment.status,
+        removalReason: attachment.removalReason,
+        removedAt: attachment.removedAt,
+        uploadedAt: attachment.uploadedAt,
+      })),
+    });
+  } catch (_error) {
+    return res.status(500).json({
+      error: "Failed to fetch ticket",
     });
   }
 });
