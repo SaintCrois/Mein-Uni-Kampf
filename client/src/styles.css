@@ -1,0 +1,80 @@
+:root {
+  --zen-primary: #006B3C;
+  --zen-secondary: #0B7A46;
+  --zen-pale: #EAF6EF;
+  --zen-background: #F5F7F6;
+  --zen-text: #17352A;
+  --zen-error: #8B1E1E;
+}
+
+body {
+  margin: 0;
+  background: var(--zen-background);
+  color: var(--zen-text);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--zen-primary);
+  --bs-btn-border-color: var(--zen-primary);
+  --bs-btn-hover-bg: var(--zen-secondary);
+  --bs-btn-hover-border-color: var(--zen-secondary);
+  --bs-btn-active-bg: var(--zen-secondary);
+  --bs-btn-active-border-color: var(--zen-secondary);
+}
+
+.btn-success {
+  --bs-btn-bg: var(--zen-primary);
+  --bs-btn-border-color: var(--zen-primary);
+  --bs-btn-hover-bg: var(--zen-secondary);
+  --bs-btn-hover-border-color: var(--zen-secondary);
+  --bs-btn-active-bg: var(--zen-secondary);
+  --bs-btn-active-border-color: var(--zen-secondary);
+}
+
+.card {
+  border: 1px solid #DDE8E2;
+  box-shadow: 0 2px 8px rgba(0, 107, 60, 0.06);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--zen-secondary);
+  box-shadow: 0 0 0 0.2rem rgba(11, 122, 70, 0.15);
+}
+
+.is-invalid {
+  border-color: var(--zen-error) !important;
+}
+
+.invalid-feedback {
+  color: var(--zen-error);
+}
+
+.priority-low {
+  background-color: #d1e7dd !important;
+  color: #0f5132 !important;
+  border-color: #a3cfbb !important;
+  font-weight: 600;
+}
+
+.priority-medium {
+  background-color: #fff3cd !important;
+  color: #664d03 !important;
+  border-color: #ffecb5 !important;
+  font-weight: 600;
+}
+
+.priority-high {
+  background-color: #f8d7da !important;
+  color: #842029 !important;
+  border-color: #f1aeb5 !important;
+  font-weight: 600;
+}
+
+.priority-urgent {
+  background-color: #dc3545 !important;
+  color: white !important;
+  border-color: #dc3545 !important;
+  font-weight: 700;
+}
+

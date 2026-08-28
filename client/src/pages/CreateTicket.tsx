@@ -9,7 +9,14 @@ import {
   ReferenceItem,
 } from "../api";
 
-export default function CreateTicket() {
+
+type CreateTicketProps = {
+  onTicketCreated?: () => void;
+};
+
+export default function CreateTicket({
+  onTicketCreated,
+}: CreateTicketProps) {
   const { selectedRequester } = useRequester();
 
   const [categories, setCategories] = useState<ReferenceItem[]>([]);
@@ -29,6 +36,8 @@ export default function CreateTicket() {
   const [loadingReferences, setLoadingReferences] = useState(true);
   const [error, setError] = useState("");
   const [ticketNumber, setTicketNumber] = useState("");
+  const [ticketCreatedAt, setTicketCreatedAt] = useState("");
+
 
   useEffect(() => {
     async function loadReferences() {
@@ -109,6 +118,7 @@ export default function CreateTicket() {
         return;
     }
     setTicketNumber("");
+    setTicketCreatedAt("");
     setError("");
 
     if (!selectedRequester) {
@@ -121,6 +131,11 @@ export default function CreateTicket() {
     setSubmitting(true);
 
     try {
+      console.log("CREATING TICKET", {
+        requesterId: selectedRequester.id,
+        requesterName: selectedRequester.fullName,
+      });
+
       const result = await createTicket({
         requesterId: selectedRequester.id,
         categoryId: Number(categoryId),
@@ -132,7 +147,12 @@ export default function CreateTicket() {
       });
 
 
-      
+      console.log("TICKET CREATED", {
+        id: result.id,
+        ticketNumber: result.ticketNumber,
+        requesterId: result.requesterId,
+      });
+
     if (attachments.length > 0) {
         await uploadTicketAttachments(
             result.id,
@@ -142,6 +162,25 @@ export default function CreateTicket() {
     }
 
     setTicketNumber(result.ticketNumber);
+    setTicketCreatedAt(result.createdAt ?? "");
+
+    setSummary("");
+    setCategoryId("");
+    setRelatedSystemId("");
+    setRequestedPriority("");
+    setDescription("");
+    setAttachments([]);
+
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = "";
+    }
+
+    setErrors({});
+
+    onTicketCreated?.();
+
+
+
 
     setSummary("");
     setCategoryId("");
@@ -190,18 +229,79 @@ export default function CreateTicket() {
 
       <div className="card shadow-sm">
         <div className="card-body p-4">
-          <div className="row g-3">
-            <div className="col-12">
-              <label className="form-label fw-semibold">Requester</label>
+          <div className="mb-4">
+            <h2 className="h5 mb-1" style={{ color: "#006B3C" }}>
+              Ticket Information
+            </h2>
+            <p className="text-muted mb-3">
+              System-generated information for this request.
+            </p>
+
+            <div className="row g-3">
+              <div className="col-md-4">
+              <label className="form-label fw-semibold">
+                Ticket Number
+              </label>
+              <input
+                className="form-control"
+                value={ticketNumber || "Generated after creation"}
+                readOnly
+                style={{
+                  backgroundColor: "#F3F6F4",
+                  color: "#496157",
+                }}
+              />
+            </div>
+
+            <div className="col-md-4">
+              <label className="form-label fw-semibold">
+                Date
+              </label>
+              <input
+                className="form-control"
+                value={
+                  ticketCreatedAt
+                    ? new Date(ticketCreatedAt).toLocaleString()
+                    : "Generated after creation"
+                }
+                readOnly
+                style={{
+                  backgroundColor: "#F3F6F4",
+                  color: "#496157",
+                }}
+              />
+            </div>
+
+            <div className="col-md-4">
+              <label className="form-label fw-semibold">
+                Requester
+              </label>
               <input
                 className="form-control"
                 value={selectedRequester?.fullName ?? ""}
                 readOnly
+                style={{
+                  backgroundColor: "#F3F6F4",
+                  color: "#496157",
+                }}
               />
             </div>
 
-            <div className="col-md-6">
-              <label htmlFor="category" className="form-label fw-semibold">
+
+                </div>
+              </div>
+
+              <div className="pt-3 border-top">
+                <h2 className="h5 mb-1" style={{ color: "#006B3C" }}>
+                  Request Details
+                </h2>
+                <p className="text-muted mb-3">
+                  Provide the details of the IT support request.
+                </p>
+
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label htmlFor="category" className="form-label fw-semibold">
                 Category
               </label>
 
@@ -351,7 +451,21 @@ export default function CreateTicket() {
                 multiple
                 onChange={(e) => {
                     const files = Array.from(e.target.files ?? []);
-                    setAttachments(files);
+                    setAttachments((current) => {
+                      const combined = [...current, ...files];
+
+                      return combined.filter(
+                        (file, index, array) =>
+                          index ===
+                          array.findIndex(
+                            (item) =>
+                              item.name === file.name &&
+                              item.size === file.size &&
+                              item.lastModified === file.lastModified,
+                          ),
+                      );
+                    });
+
 
                     let attachmentError = "";
 
@@ -399,13 +513,34 @@ export default function CreateTicket() {
 
               {attachments.length > 0 && (
                 <ul className="mt-2">
-                  {attachments.map((file) => (
-                    <li key={`${file.name}-${file.size}`}>
-                      {file.name}
+                  {attachments.map((file, index) => (
+                    <li
+                      key={`${file.name}-${file.size}-${file.lastModified}`}
+                      className="d-flex align-items-center gap-2 mb-1"
+                    >
+                      <span>{file.name}</span>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => {
+                          setAttachments((current) =>
+                            current.filter((_, fileIndex) => fileIndex !== index),
+                          );
+
+                          setErrors((current) => ({
+                            ...current,
+                            attachments: "",
+                          }));
+                        }}
+                      >
+                        Remove
+                      </button>
                     </li>
                   ))}
                 </ul>
               )}
+
             </div>
 
             <div className="col-12 d-flex justify-content-end">
@@ -415,12 +550,13 @@ export default function CreateTicket() {
                 disabled={submitting || loadingReferences}
                 onClick={handleSubmit}
               >
-                {submitting ? "Creating..." : "Create Ticket"}
+                {submitting ? "Creating..." : "Submit Ticket"}
               </button>
             </div>
           </div>
         </div>
       </div>
+    </div>
     </main>
   );
 }

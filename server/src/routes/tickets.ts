@@ -23,6 +23,8 @@ router.get("/", async (req, res) => {
         requesterId: req.requesterId,
       },
       include: {
+        category: true,
+        requestedPriority: true,
         currentStatus: true,
       },
       orderBy: {
@@ -35,6 +37,18 @@ router.get("/", async (req, res) => {
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
         summary: ticket.summary,
+        category: {
+          id: ticket.category.id,
+          name: ticket.category.name,
+        },
+        requestedPriority: {
+          id: ticket.requestedPriority.id,
+          name: ticket.requestedPriority.name,
+        },
+        currentStatus: {
+          id: ticket.currentStatus.id,
+          name: ticket.currentStatus.name,
+        },
         status: ticket.currentStatus.name,
         createdAt: ticket.createdAt,
       })),
@@ -45,6 +59,7 @@ router.get("/", async (req, res) => {
     });
   }
 });
+
 
 router.post("/", async (req, res) => {
 
@@ -189,6 +204,7 @@ router.post("/", async (req, res) => {
     return res.status(201).json({
       id: ticket.id,
       ticketNumber: ticket.ticketNumber,
+      createdAt: ticket.createdAt,
       requesterId: ticket.requesterId,
       categoryId: ticket.categoryId,
       relatedSystemId: ticket.relatedSystemId,
@@ -197,6 +213,7 @@ router.post("/", async (req, res) => {
       requestedPriorityId: ticket.requestedPriorityId,
       status: "New",
     });
+
   } catch (_error) {
     return res.status(500).json({
       error: "Failed to create ticket",

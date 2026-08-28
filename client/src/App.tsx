@@ -6,7 +6,9 @@ import {
 import RequesterSelection from "./pages/RequesterSelection";
 import CreateTicket from "./pages/CreateTicket";
 import MyTickets from "./pages/MyTickets";
+import TicketDetail from "./pages/TicketDetail";
 import { checkSystem } from "./api";
+
 
 
 function AppContent() {
@@ -19,8 +21,9 @@ function AppContent() {
     "home" | "my-tickets" | "ticket-detail" | "create-ticket" | "change-requester"
   >("home");
 
-const [selectedTicketId, setSelectedTicketId] =
-  useState<number | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedTicketId, setSelectedTicketId] =
+    useState<number | null>(null);
 
 
   const [healthStatus, setHealthStatus] =
@@ -69,67 +72,83 @@ const [selectedTicketId, setSelectedTicketId] =
 
   return (
     <div className="container py-4">
-      <header className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 className="h3 mb-1">
-            TokTickIT{" "}
-            <span className="text-success">
-              IT Service Desk
-            </span>
-          </h1>
+      <header
+        className="mb-4 p-3 rounded"
+        style={{
+          backgroundColor: "#006B3C",
+          color: "white",
+        }}
+      >
+        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+          <div>
+            <h1 className="h3 mb-1">
+              TokTickIT{" "}
+              <span style={{ color: "#EAF6EF" }}>
+                IT Service Desk
+              </span>
+            </h1>
+
+            {selectedRequester && (
+              <div className="fw-bold">
+                {selectedRequester.fullName}
+              </div>
+            )}
+          </div>
 
           {selectedRequester && (
-            <div className="fw-bold">
-              {selectedRequester.fullName}
+            <div className="d-flex flex-column flex-sm-row gap-2">
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setPage("my-tickets")}
+              >
+                My Tickets
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setPage("create-ticket")}
+              >
+                Create Ticket
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-outline-light"
+                onClick={handleChangeRequester}
+              >
+                Change Requester
+              </button>
             </div>
           )}
         </div>
-
-        {selectedRequester && (
-          <div className="d-flex gap-2">
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() => setPage("my-tickets")}
-            >
-              My Tickets
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-success"
-              onClick={() =>
-                setPage("create-ticket")
-              }
-            >
-              Create Ticket
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={handleChangeRequester}
-            >
-              Change Requester
-            </button>
-          </div>
-        )}
       </header>
+
 
       {page === "create-ticket" &&
       selectedRequester ? (
-        <CreateTicket />
+        <CreateTicket
+          onTicketCreated={() => {
+            setRefreshKey((current) => current + 1);
+            setPage("my-tickets");
+          }}
+        />
       ) : page === "my-tickets" &&
       selectedRequester ? (
         <MyTickets
           onOpenTicket={handleOpenTicket}
+          onCreateTicket={() => setPage("create-ticket")}
+          refreshKey={refreshKey}
         />
+
       ) : page === "ticket-detail" &&
       selectedRequester &&
       selectedTicketId !== null ? (
-        <div className="alert alert-info">
-          Ticket detail coming next.
-        </div>
+        <TicketDetail
+          ticketId={selectedTicketId}
+          onBack={() => setPage("my-tickets")}
+        />
       ) : page === "change-requester" ? (
         <>
           <div className="d-flex justify-content-end mb-3">

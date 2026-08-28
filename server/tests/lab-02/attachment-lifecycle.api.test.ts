@@ -65,7 +65,7 @@ describe("Attachment lifecycle", () => {
     const attachmentId = uploadResponse.body.data[0].id;
 
     const response = await request(app)
-      .get(`/api/tickets/${ticket.id}/attachments/${attachmentId}`)
+      .get(`/api/tickets/${ticket.id}/attachments/${attachmentId}/download`)
       .set("X-Requester-Id", String(requester.id));
 
     expect(response.status).toBe(200);
