@@ -119,9 +119,9 @@ test.describe("TokTickIT Requester Ticketing MVP — Full E2E Lifecycle", () => 
           status: 500,
           contentType: "application/json",
           body: JSON.stringify({ message: "Internal server error during simulation" }),
-        });
+        }).catch(() => {});
       } else {
-        await route.continue();
+        await route.continue().catch(() => {});
       }
     });
 
@@ -145,9 +145,9 @@ test.describe("TokTickIT Requester Ticketing MVP — Full E2E Lifecycle", () => 
       await page.route("**/api/tickets", async (route) => {
         if (route.request().method() === "POST") {
           await new Promise((res) => setTimeout(res, 600));
-          await route.continue();
+          await route.continue().catch(() => {});
         } else {
-          await route.continue();
+          await route.continue().catch(() => {});
         }
       });
 
@@ -158,7 +158,7 @@ test.describe("TokTickIT Requester Ticketing MVP — Full E2E Lifecycle", () => 
         fullPage: true,
       });
       await delayedSubmitPromise;
-      await page.unroute("**/api/tickets");
+      await page.unroute("**/api/tickets").catch(() => {});
     } else {
       await submitBtn.click();
     }
@@ -417,7 +417,7 @@ test.describe("TokTickIT Requester Ticketing MVP — Full E2E Lifecycle", () => 
         status: 403,
         contentType: "application/json",
         body: JSON.stringify({ error: "Access denied: You are not authorized to view this ticket." }),
-      });
+      }).catch(() => {});
     });
 
     // Requester B opens My Tickets
