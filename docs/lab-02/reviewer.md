@@ -56,6 +56,58 @@
 
 ---
 
-## Pull Requests I reviewed for my partner
+## Pull Requests I reviewed for my partner (bravefe/cpe334_lab01_67070503427)
 
-*(Note: If you have the PRs you reviewed for your partner, they should be listed here with your comments and their responses, as required by the rubric.)*
+| PR | Branch | Reviewer verdict |
+|----|--------|------------------|
+| #23 | `feature/5-specification` | Approved (Changes requested & addressed) |
+| #25 | `feature/6-database` | Approved (Changes requested & addressed) |
+| #32 | `feature/7-ticket-2` | Approved |
+| #33 | `feature/8-create-ticket-and-ticket-view` | Approved |
+| #34 | `feature/9-attachment` | Approved |
+
+---
+
+### PR #23 (`feature/5-specification`)
+**My comment:** "Hey! I see you have done a nice work there. I saw some inconsistency, but it is no major issue. Here are the details:
+- `docs/lab-02/ui-spec.md` — §5 My Tickets: includes IT Priority and Ticket Owner even though they're excluded from Lab 2.
+- `docs/lab-02/ui-spec.md` — §6 Ticket Detail: includes Public Comments, Service Actions, Event Log, and Resolution Summary even though they're out of scope.
+- `docs/lab-02/test.md` — §1 Test Strategy: says E2E is out of scope, but `specification.md` §10.1 requires E2E tests.
+- `docs/lab-02/specification.md` — §7.1 Status: status values differ from the earlier required status definition; confirm which set is correct."
+**Partner's response:** "Nice catch. Thank you for your thorough and in-depth review. I will proceed to edit my `specification.md` file. ... I have made further changes to `test.md`, including additional test cases as well as coverage for E2E and unit testing. Additionally: `itPriority` has been removed from both the API and UI but will still remain in database for future implementation. Public comments, service actions, and event logs have been removed from the API for the current implementation, but their UI components will remain in place for future implementation. Thank you for your understanding. For `docs/lab-02/specification.md`, I have also rechecked the current database tables and confirmed that the structure is correct. Please review these changes as well and let me know if everything is clear and ready to merge."
+**My follow-up:** "Very good! Everything is cleared. I'll proceed to merge now."
+**Partner follow-up:** "Please use squash merge for this issue due to confusing commit timeline."
+**My final response:** "Sure!" *(Merged into lab2-staging)*
+
+---
+
+### PR #25 (`feature/6-database`)
+**My comment:** "Hey, Great job! I spot some of the explicitly excluded functions included here:
+- `server/prisma/schema.prisma`: remove PublicComment, ServiceAction, and EventLog models because collaboration features are explicitly excluded from Lab 2 scope.
+- `server/prisma/schema.prisma`: rename `ticketCode` to `ticketNumber` and `fileSizeBytes` to `fileSize` because the code must exactly match the approved Phase 1 specification fields.
+- `server/prisma/seed.ts`: change the generated ticket prefix from `TK-2026-` to `TKT-2026-` because FR-02 strictly mandates the `TKT-YYYY-######` format. Please check. I may be wrong."
+**Partner's response:** "After reconsidering the changes, I’ve made the following updates: Removed the PublicComment, ServiceAction, and EventLog models/databases entirely. Renamed `ticketCode` to `ticketNumber` and `fileSizeBytes` to `fileSize` in `schema.prisma`. Updated `server/prisma/seed.ts` to change the generated ticket prefix from `TK-2026-` to `TKT-2026-` (`TKT-YYYY-######`). Please have another look when you have a chance."
+**My follow-up:** "Great! I see you had fixed most of the issues. Unfortunately, there is just a little bit more that we can make this perfect:
+- Attachment Status Type Mismatch: It looks like `Attachment.status` was changed from an Enum (`ACTIVE`, `REMOVED`) to a boolean (`isActive`). The Phase 1 spec strictly requires an Enum so we can add future states (like `QUARANTINED` or `ARCHIVED`) without breaking the database.
+- Doc Contradiction: The update to `specification.md` created a self-contradiction where section 6 now literally states 'attachment.isActive is an enum... rather than a boolean'. I may be wrong! If you feel like these are incorrect or unnecessary you can always inform me."
+**Partner follow-up:** "Thank you for the detailed review. I’ve made the requested changes by restoring `Attachment.status` as an Enum with `ACTIVE` and `REMOVED`, and I’ve also corrected the contradiction in `specification.md` regarding `attachment.isActive`. I also made some further improvements to the seed data to make it more realistic. Please recheck and tell me when it's ready to merge."
+**My final response:** "Hey! I see you've done a Grape job! Please tell me when you are ready to merge this PR." *(Merged into lab2-staging)*
+
+---
+
+### PR #32 (`feature/7-ticket-2`)
+**Partner's comment:** "Issue 5 — Specification: Added and updated the Lab 2 engineering specification and test plan... Please just merge right away."
+**My review comment:** "Good work! It is amazing to see a lot of commits before you finally settle with this version. Shows how much effort you've put into this work. After reviewing, I see no wrong with your code. It seems to align with what you've written in description and issue. Approved." *(Merged into lab2-staging)*
+
+---
+
+### PR #33 (`feature/8-create-ticket-and-ticket-view`)
+**Partner's comment:** "Implement the 2 Page `/create-ticket` and `/ticket/:ticketNo`, add api test for create ticket and ticket detail."
+**My review comment:** "After reviewing I see you have done a great job. Please tell me when you are ready to merge."
+**Partner's response:** "Thank you very much please proceed to merge." *(Merged into lab2-staging)*
+
+---
+
+### PR #34 (`feature/9-attachment`)
+**Partner's comment:** "Complete all the test, add attachment."
+**My review comment:** "I checked the PR. The attachment functionality and related tests appear to be implemented, including the client attachment test and ticket/requester detail tests. Make sure that your tests pass. That's all. Great job. Notify me when you want to merge." *(Approved)*
