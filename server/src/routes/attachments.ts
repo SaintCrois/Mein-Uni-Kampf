@@ -169,7 +169,7 @@ router.post(
 
 
 router.get(
-  "/:ticketId/attachments/:attachmentId",
+  "/:ticketId/attachments/:attachmentId/download",
   async (req, res) => {
     try {
       const ticketId = Number(req.params.ticketId);

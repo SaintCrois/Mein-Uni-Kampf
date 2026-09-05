@@ -55,6 +55,7 @@ export interface CreateTicketInput {
 export interface CreateTicketResponse {
   id: number;
   ticketNumber: string;
+  createdAt?: string;
   requesterId: number;
   categoryId: number;
   relatedSystemId: number;
@@ -168,15 +169,109 @@ export interface MyTicket {
   id: number;
   ticketNumber: string;
   summary: string;
-  status: string;
-  createdAt?: string;
+  category: {
+    id: number;
+    name: string;
+  };
+  requestedPriority: {
+    id: number;
+    name: string;
+  };
+  currentStatus: {
+    id: number;
+    name: string;
+  };
+  createdAt: string;
 }
+
 
 export async function getMyTickets(
   requesterId: number,
 ): Promise<MyTicket[]> {
+  console.log("GET MY TICKETS REQUEST", {
+    requesterId,
+    url: `${API_URL}/api/tickets`,
+  });
+
+  const response = await fetch(`${API_URL}/api/tickets`, {
+    headers: {
+      "X-Requester-Id": String(requesterId),
+    },
+  });
+
+  console.log("GET MY TICKETS RESPONSE", {
+    requesterId,
+    status: response.status,
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+
+    throw new Error(
+      data?.error || "Failed to fetch tickets.",
+    );
+  }
+
+  const data = await response.json();
+
+  console.log("GET MY TICKETS BODY", data);
+
+  const tickets: MyTicket[] = data.data ?? data;
+
+  console.log("GET MY TICKETS PARSED", {
+    count: tickets.length,
+    ticketNumbers: tickets.map(
+      (ticket) => ticket.ticketNumber,
+    ),
+  });
+
+  return tickets;
+}
+
+
+export interface TicketAttachment {
+  id: number;
+  originalFileName: string;
+  mimeType: string;
+  fileSize: number;
+  status: "ACTIVE" | "REMOVED";
+  removalReason: string | null;
+  removedAt: string | null;
+  uploadedAt: string;
+}
+
+export interface TicketDetail {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  description: string;
+  category: {
+    id: number;
+    name: string;
+  };
+  relatedSystem: {
+    id: number;
+    name: string;
+  };
+  requestedPriority: {
+    id: number;
+    name: string;
+  };
+  currentStatus: {
+    id: number;
+    name: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  attachments: TicketAttachment[];
+}
+
+export async function getTicketDetail(
+  ticketId: number,
+  requesterId: number,
+): Promise<TicketDetail> {
   const response = await fetch(
-    `${API_URL}/api/tickets`,
+    `${API_URL}/api/tickets/${ticketId}`,
     {
       headers: {
         "X-Requester-Id": String(requesterId),
@@ -186,12 +281,12 @@ export async function getMyTickets(
 
   if (!response.ok) {
     const data = await response.json().catch(() => null);
+
     throw new Error(
-      data?.error || "Failed to fetch tickets.",
+      data?.error || "Failed to fetch ticket details.",
     );
   }
 
-  const data = await response.json();
-
-  return data.data ?? data;
+  return response.json();
 }
+

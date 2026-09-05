@@ -48,7 +48,7 @@ describe("Create Ticket", () => {
     await screen.findByText("Email");
 
     await user.click(
-      screen.getByRole("button", { name: /create ticket/i }),
+      screen.getByRole("button", { name: /(submit|create) ticket/i }),
     );
 
     expect(
@@ -117,7 +117,7 @@ describe("Create Ticket", () => {
     );
 
     await user.click(
-      screen.getByRole("button", { name: /create ticket/i }),
+      screen.getByRole("button", { name: /(submit|create) ticket/i }),
     );
 
     expect(
@@ -171,7 +171,7 @@ describe("Create Ticket", () => {
     );
 
     const button = screen.getByRole("button", {
-      name: /create ticket/i,
+      name: /(submit|create) ticket/i,
     });
 
     await user.click(button);
@@ -235,7 +235,7 @@ describe("Create Ticket", () => {
     );
 
     await user.click(
-      screen.getByRole("button", { name: /create ticket/i }),
+      screen.getByRole("button", { name: /(submit|create) ticket/i }),
     );
 
     expect(
