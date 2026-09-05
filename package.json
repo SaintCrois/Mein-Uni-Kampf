@@ -1,0 +1,31 @@
+{
+  "name": "toktickit",
+  "version": "1.0.0",
+  "description": "TokTickIT is a full-stack internal IT ticketing application featuring a React frontend, an Express API backend, and a PostgreSQL database managed via Prisma ORM inside Docker.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaintCrois/Mein-Uni-Kampf.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/SaintCrois/Mein-Uni-Kampf/issues"
+  },
+  "homepage": "https://github.com/SaintCrois/Mein-Uni-Kampf#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1",
+    "playwright-core": "^1.62.1"
+  }
+}
