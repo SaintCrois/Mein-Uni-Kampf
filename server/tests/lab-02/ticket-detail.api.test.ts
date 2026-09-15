@@ -7,14 +7,15 @@ describe("GET /api/tickets/:id", () => {
   const prisma = getPrisma();
 
   async function getTestTicket() {
-    const requester = await prisma.devRequester.findFirstOrThrow({
-      where: { isActive: true },
+    const requester = await prisma.user.findFirstOrThrow({
+      where: { isActive: true, role: "REQUESTER" },
       orderBy: { id: "asc" },
     });
 
-    const otherRequester = await prisma.devRequester.findFirstOrThrow({
+    const otherRequester = await prisma.user.findFirstOrThrow({
       where: {
         isActive: true,
+        role: "REQUESTER",
         id: { not: requester.id },
       },
       orderBy: { id: "asc" },
