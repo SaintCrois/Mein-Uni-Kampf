@@ -113,7 +113,7 @@ router.post("/", async (req, res) => {
 
     const prisma = getPrisma();
 
-    const requester = await prisma.devRequester.findUnique({
+    const requester = await prisma.user.findUnique({
       where: { id: requesterId },
     });
 
