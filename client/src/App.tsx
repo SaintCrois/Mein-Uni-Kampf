@@ -3,13 +3,14 @@ import {
   RequesterProvider,
   useRequester,
 } from "./context/RequesterContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import RequesterSelection from "./pages/RequesterSelection";
 import CreateTicket from "./pages/CreateTicket";
 import MyTickets from "./pages/MyTickets";
 import TicketDetail from "./pages/TicketDetail";
+import Login from "./pages/Login";
+import ChangePassword from "./pages/ChangePassword";
 import { checkSystem } from "./api";
-
-
 
 function AppContent() {
   const {
@@ -17,30 +18,29 @@ function AppContent() {
     setSelectedRequester,
   } = useRequester();
 
+  const { user, logout } = useAuth();
+
   const [page, setPage] = useState<
-    "home" | "my-tickets" | "ticket-detail" | "create-ticket" | "change-requester"
+    | "home"
+    | "login"
+    | "change-password"
+    | "my-tickets"
+    | "ticket-detail"
+    | "create-ticket"
+    | "change-requester"
   >("home");
 
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedTicketId, setSelectedTicketId] =
-    useState<number | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
 
-
-  const [healthStatus, setHealthStatus] =
-    useState("Not checked");
-
-  const [categories, setCategories] = useState<
-    { id: number; name: string }[]
-  >([]);
+  const [healthStatus, setHealthStatus] = useState("Not checked");
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
 
   async function handleCheckSystem() {
     try {
       const result = await checkSystem();
-
       setHealthStatus("Online");
 
-      // Supports both the normal API result
-      // and the test mock.
       if (Array.isArray(result)) {
         setCategories(result);
       } else {
@@ -69,6 +69,25 @@ function AppContent() {
     setPage("ticket-detail");
   }
 
+  async function handleLogout() {
+    try {
+      await logout();
+      setSelectedRequester(null);
+      setPage("home");
+    } catch (e) {
+      console.error("Logout failed:", e);
+    }
+  }
+
+  // Active requester context: authenticated user or simulated dev requester
+  const effectiveRequester = user
+    ? {
+        id: user.id,
+        fullName: user.name,
+        email: user.email,
+        isActive: true,
+      }
+    : selectedRequester;
 
   return (
     <div className="container py-4">
@@ -83,68 +102,125 @@ function AppContent() {
           <div>
             <h1 className="h3 mb-1">
               TokTickIT{" "}
-              <span style={{ color: "#EAF6EF" }}>
-                IT Service Desk
-              </span>
+              <span style={{ color: "#EAF6EF" }}>IT Service Desk</span>
             </h1>
 
-            {selectedRequester && (
-              <div className="fw-bold">
-                {selectedRequester.fullName}
+            {user ? (
+              <div className="fw-bold d-flex align-items-center gap-2">
+                <span>{user.name}</span>
+                {user.role === "REQUESTER" && (
+                  <span className="badge bg-secondary">Requester</span>
+                )}
+                {user.role === "IT_STAFF" && (
+                  <span className="badge bg-primary">IT Staff</span>
+                )}
+                {user.role === "ADMINISTRATOR" && (
+                  <span className="badge bg-dark">Administrator</span>
+                )}
               </div>
-            )}
+            ) : selectedRequester ? (
+              <div className="fw-bold">{selectedRequester.fullName}</div>
+            ) : null}
           </div>
 
-          {selectedRequester && (
-            <div className="d-flex flex-column flex-sm-row gap-2">
-              <button
-                type="button"
-                className="btn btn-light"
-                onClick={() => setPage("my-tickets")}
-              >
-                My Tickets
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-light"
-                onClick={() => setPage("create-ticket")}
-              >
-                Create Ticket
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-outline-light"
-                onClick={handleChangeRequester}
-              >
-                Change Requester
-              </button>
-            </div>
-          )}
+          <div className="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+            {user ? (
+              <>
+                {user.role === "REQUESTER" && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-light btn-sm"
+                      onClick={() => setPage("my-tickets")}
+                    >
+                      My Tickets
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-light btn-sm"
+                      onClick={() => setPage("create-ticket")}
+                    >
+                      Create Ticket
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-outline-light btn-sm"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </button>
+              </>
+            ) : selectedRequester ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-light btn-sm"
+                  onClick={() => setPage("my-tickets")}
+                >
+                  My Tickets
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-light btn-sm"
+                  onClick={() => setPage("create-ticket")}
+                >
+                  Create Ticket
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-light btn-sm"
+                  onClick={handleChangeRequester}
+                >
+                  Change Requester
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-light btn-sm"
+                  onClick={() => setPage("login")}
+                >
+                  Sign In
+                </button>
+              </>
+            ) : (
+              page !== "login" && (
+                <button
+                  type="button"
+                  className="btn btn-light btn-sm"
+                  onClick={() => setPage("login")}
+                >
+                  Sign In
+                </button>
+              )
+            )}
+          </div>
         </div>
       </header>
 
-
-      {page === "create-ticket" &&
-      selectedRequester ? (
+      {/* Mandatory password change gate */}
+      {user?.mustChangePassword ? (
+        <ChangePassword onSuccess={() => setPage("home")} />
+      ) : page === "login" ? (
+        <Login onSuccess={() => setPage("home")} />
+      ) : page === "change-password" ? (
+        <ChangePassword onSuccess={() => setPage("home")} />
+      ) : page === "create-ticket" && effectiveRequester ? (
         <CreateTicket
           onTicketCreated={() => {
             setRefreshKey((current) => current + 1);
             setPage("my-tickets");
           }}
         />
-      ) : page === "my-tickets" &&
-      selectedRequester ? (
+      ) : page === "my-tickets" && effectiveRequester ? (
         <MyTickets
           onOpenTicket={handleOpenTicket}
           onCreateTicket={() => setPage("create-ticket")}
           refreshKey={refreshKey}
         />
-
       ) : page === "ticket-detail" &&
-      selectedRequester &&
-      selectedTicketId !== null ? (
+        effectiveRequester &&
+        selectedTicketId !== null ? (
         <TicketDetail
           ticketId={selectedTicketId}
           onBack={() => setPage("my-tickets")}
@@ -160,12 +236,7 @@ function AppContent() {
               Cancel
             </button>
           </div>
-
-          <RequesterSelection
-            onRequesterSelected={
-              handleRequesterSelected
-            }
-          />
+          <RequesterSelection onRequesterSelected={handleRequesterSelected} />
         </>
       ) : (
         <>
@@ -181,19 +252,11 @@ function AppContent() {
 
           {healthStatus === "Online" && (
             <div className="alert alert-success">
-              <h4 className="alert-heading h5">
-                System Online
-              </h4>
-
-              <p className="mb-0">
-                Categories loaded:
-              </p>
-
+              <h4 className="alert-heading h5">System Online</h4>
+              <p className="mb-0">Categories loaded:</p>
               <ul className="mb-0 mt-2">
                 {categories.map((category) => (
-                  <li key={category.id}>
-                    {category.name}
-                  </li>
+                  <li key={category.id}>{category.name}</li>
                 ))}
               </ul>
             </div>
@@ -201,22 +264,13 @@ function AppContent() {
 
           {healthStatus === "Offline" && (
             <div className="alert alert-danger">
-              <h4 className="alert-heading h5">
-                System Offline
-              </h4>
-
-              <p className="mb-0">
-                Unable to connect to the API.
-              </p>
+              <h4 className="alert-heading h5">System Offline</h4>
+              <p className="mb-0">Unable to connect to the API.</p>
             </div>
           )}
 
-          {!selectedRequester && (
-            <RequesterSelection
-              onRequesterSelected={
-                handleRequesterSelected
-              }
-            />
+          {!effectiveRequester && !user && (
+            <RequesterSelection onRequesterSelected={handleRequesterSelected} />
           )}
         </>
       )}
@@ -226,8 +280,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <RequesterProvider>
-      <AppContent />
-    </RequesterProvider>
+    <AuthProvider>
+      <RequesterProvider>
+        <AppContent />
+      </RequesterProvider>
+    </AuthProvider>
   );
 }
