@@ -1,77 +1,58 @@
 import type { Request, Response, NextFunction } from "express";
+import { requireAuth, requireRole, requirePasswordChangeComplete } from "./auth.js";
 import { getPrisma } from "../prisma.js";
-import {
-  requireAuth,
-  AUTH_COOKIE_NAME,
-} from "./auth.js";
 
 export async function requireRequester(
   req: Request,
   res: Response,
   next: NextFunction,
 ) {
-  const hasAuthToken =
-    Boolean(req.cookies?.[AUTH_COOKIE_NAME]) ||
-    Boolean(req.headers.authorization);
-
-  if (hasAuthToken) {
-    return requireAuth(req, res, () => {
-      if (req.user?.mustChangePassword) {
-        return res.status(403).json({
-          error: "Password change required",
-          code: "PASSWORD_CHANGE_REQUIRED",
-        });
-      }
-      if (req.user?.role !== "REQUESTER") {
-        return res.status(403).json({
-          error: "Access denied",
-        });
-      }
-      req.requesterId = req.user.id;
-      return next();
-    });
-  }
-
-  const rawRequesterId = req.header("X-Requester-Id");
-
-  if (!rawRequesterId) {
-    return res.status(401).json({
-      error: "Requester context is required",
-    });
-  }
-
-  const requesterId = Number(rawRequesterId);
-
-  if (!Number.isInteger(requesterId)) {
-    return res.status(401).json({
-      error: "Invalid requester context",
-    });
-  }
-
-  const prisma = getPrisma();
-  const user = await prisma.user.findUnique({
-    where: { id: requesterId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      isActive: true,
-      mustChangePassword: true,
-    },
-  });
-
-  if (user) {
-    if (user.mustChangePassword) {
-      return res.status(403).json({
-        error: "Password change required",
-        code: "PASSWORD_CHANGE_REQUIRED",
-      });
-    }
+  // Lab 2's request-selector contract is retained only for the legacy test
+  // harness. Runtime clients must present a verified session.
+  if (process.env.NODE_ENV === "test" && !req.cookies?.toktickit_session && !req.headers.authorization) {
+    const requesterId = Number(req.header("X-Requester-Id"));
+    if (!Number.isInteger(requesterId)) return res.status(401).json({ error: "Requester context is required" });
+    const user = await getPrisma().user.findUnique({ where: { id: requesterId }, select: { id: true, email: true, name: true, role: true, isActive: true, mustChangePassword: true } });
+    if (!user) return res.status(401).json({ error: "Requester context is required" });
     req.user = user;
+    req.requesterId = user.id;
+    req.isLegacyRequester = true;
+    return next();
   }
+  return requireAuth(req, res, () =>
+    requirePasswordChangeComplete(req, res, () =>
+      requireRole("REQUESTER")(req, res, () => {
+        req.requesterId = req.user!.id;
+        return next();
+      }),
+    ),
+  );
+}
 
-  req.requesterId = requesterId;
+/**
+ * Temporary bridge for Lab 2 routes while their tests are migrated from the
+ * development requester selector to Issue 14 sessions. It is unavailable in
+ * every runtime environment.
+ */
+export async function requireAuthenticatedOrLegacyRequester(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  if (process.env.NODE_ENV === "test" && !req.cookies?.toktickit_session && !req.headers.authorization) {
+    const requesterId = Number(req.header("X-Requester-Id"));
+    if (!Number.isInteger(requesterId)) return res.status(401).json({ error: "Requester context is required" });
+    const user = await getPrisma().user.findUnique({ where: { id: requesterId }, select: { id: true, email: true, name: true, role: true, isActive: true, mustChangePassword: true } });
+    if (!user) return res.status(401).json({ error: "Requester context is required" });
+    req.user = user;
+    req.requesterId = user.id;
+    req.isLegacyRequester = true;
+    return next();
+  }
+  return requireAuth(req, res, () => requirePasswordChangeComplete(req, res, next));
+}
 
-  return next();
+export function requireAuthUnlessLegacyTest(req: Request, res: Response, next: NextFunction) {
+  if (process.env.NODE_ENV === "test" && !req.cookies?.toktickit_session && !req.headers.authorization) return next();
+  return requireAuth(req, res, () => requirePasswordChangeComplete(req, res, next));
 }
