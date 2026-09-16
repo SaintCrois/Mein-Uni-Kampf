@@ -65,13 +65,14 @@ router.post("/", async (req, res) => {
 
   try {
     const {
-      requesterId,
       categoryId,
       relatedSystemId,
       summary,
       description,
       requestedPriorityId,
     } = req.body;
+
+    const requesterId = req.body.requesterId ?? req.requesterId;
 
     if (
       !Number.isInteger(requesterId) ||

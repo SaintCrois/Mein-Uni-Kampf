@@ -1,10 +1,12 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { getPrisma } from "./prisma.js";
 import requestersRouter from "./routes/requesters.js";
 import ticketsRouter from "./routes/tickets.js";
 import referenceRouter from "./routes/reference.js";
 import attachmentsRouter from "./routes/attachments.js";
+import authRouter from "./routes/auth.js";
 
 
 // getPrisma() is your lazy database handle. Call it INSIDE a route when you
@@ -17,12 +19,15 @@ export const app = express();
 
 app.use(cors());          // already wired: lets the Vite dev server call this API
 app.use(express.json());
+app.use(cookieParser());
 
 app.use("/api/dev-requesters", requestersRouter);
 app.use("/api/requesters", requestersRouter);
 app.use("/api/tickets", ticketsRouter);
 app.use("/api/tickets", attachmentsRouter);
 app.use("/api", referenceRouter);
+app.use("/api/auth", authRouter);
+
 
 
 
