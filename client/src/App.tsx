@@ -10,6 +10,7 @@ import MyTickets from "./pages/MyTickets";
 import TicketDetail from "./pages/TicketDetail";
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
+import { useEffect } from "react";
 import { checkSystem } from "./api";
 
 function AppContent() {
@@ -25,9 +26,10 @@ function AppContent() {
     | "login"
     | "change-password"
     | "my-tickets"
-    | "ticket-detail"
-    | "create-ticket"
-    | "change-requester"
+  | "ticket-detail"
+  | "create-ticket"
+  | "staff-tickets"
+  | "admin-users"
   >("home");
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -52,17 +54,15 @@ function AppContent() {
     }
   }
 
-  function handleChangeRequester() {
-    setPage("change-requester");
+  function primaryPage() {
+    if (user?.role === "IT_STAFF") return "staff-tickets";
+    if (user?.role === "ADMINISTRATOR") return "admin-users";
+    return "my-tickets";
   }
 
-  function handleCancelChangeRequester() {
-    setPage("home");
-  }
-
-  function handleRequesterSelected() {
-    setPage("home");
-  }
+  useEffect(() => {
+    if (user && !user.mustChangePassword && page === "home") setPage(primaryPage());
+  }, [user]);
 
   function handleOpenTicket(ticketId: number) {
     setSelectedTicketId(ticketId);
@@ -73,21 +73,15 @@ function AppContent() {
     try {
       await logout();
       setSelectedRequester(null);
-      setPage("home");
+      setPage("login");
     } catch (e) {
       console.error("Logout failed:", e);
     }
   }
 
-  // Active requester context: authenticated user or simulated dev requester
-  const effectiveRequester = user
-    ? {
-        id: user.id,
-        fullName: user.name,
-        email: user.email,
-        isActive: true,
-      }
-    : selectedRequester;
+  const effectiveRequester = user?.role === "REQUESTER"
+    ? { id: user.id, fullName: user.name, email: user.email, isActive: true }
+    : null;
 
   return (
     <div className="container py-4">
@@ -110,6 +104,16 @@ function AppContent() {
                 <span>{user.name}</span>
                 {user.role === "REQUESTER" && (
                   <span className="badge bg-secondary">Requester</span>
+                )}
+                {user.role === "IT_STAFF" && (
+                  <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("staff-tickets")}>
+                    Ticket Queue
+                  </button>
+                )}
+                {user.role === "ADMINISTRATOR" && (
+                  <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("admin-users")}>
+                    User Management
+                  </button>
                 )}
                 {user.role === "IT_STAFF" && (
                   <span className="badge bg-primary">IT Staff</span>
@@ -152,37 +156,6 @@ function AppContent() {
                   Logout
                 </button>
               </>
-            ) : selectedRequester ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-light btn-sm"
-                  onClick={() => setPage("my-tickets")}
-                >
-                  My Tickets
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-light btn-sm"
-                  onClick={() => setPage("create-ticket")}
-                >
-                  Create Ticket
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline-light btn-sm"
-                  onClick={handleChangeRequester}
-                >
-                  Change Requester
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-light btn-sm"
-                  onClick={() => setPage("login")}
-                >
-                  Sign In
-                </button>
-              </>
             ) : (
               page !== "login" && (
                 <button
@@ -205,6 +178,8 @@ function AppContent() {
         <Login onSuccess={() => setPage("home")} />
       ) : page === "change-password" ? (
         <ChangePassword onSuccess={() => setPage("home")} />
+      ) : !user ? (
+        <Login onSuccess={() => setPage("home")} />
       ) : page === "create-ticket" && effectiveRequester ? (
         <CreateTicket
           onTicketCreated={() => {
@@ -225,19 +200,10 @@ function AppContent() {
           ticketId={selectedTicketId}
           onBack={() => setPage("my-tickets")}
         />
-      ) : page === "change-requester" ? (
-        <>
-          <div className="d-flex justify-content-end mb-3">
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={handleCancelChangeRequester}
-            >
-              Cancel
-            </button>
-          </div>
-          <RequesterSelection onRequesterSelected={handleRequesterSelected} />
-        </>
+      ) : page === "staff-tickets" && user.role === "IT_STAFF" ? (
+        <section className="card shadow-sm"><div className="card-body"><h2 className="h4">IT Staff Ticket Queue</h2><p className="mb-0">Ticket operations will be available in the staff workflow.</p></div></section>
+      ) : page === "admin-users" && user.role === "ADMINISTRATOR" ? (
+        <section className="card shadow-sm"><div className="card-body"><h2 className="h4">User Management</h2><p className="mb-0">User management controls will be available here.</p></div></section>
       ) : (
         <>
           <div className="mb-4">
@@ -269,9 +235,6 @@ function AppContent() {
             </div>
           )}
 
-          {!effectiveRequester && !user && (
-            <RequesterSelection onRequesterSelected={handleRequesterSelected} />
-          )}
         </>
       )}
     </div>

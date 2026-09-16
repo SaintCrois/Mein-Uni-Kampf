@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { getPrisma } from "../prisma.js";
+import type { AuthenticatedUser } from "../types/express.js";
 
 export const AUTH_COOKIE_NAME = "toktickit_session";
 
@@ -12,27 +13,9 @@ if (!JWT_SECRET) {
 
 const jwtSecret: string = JWT_SECRET;
 
-
-type AuthenticatedUser = {
-  id: number;
-  email: string;
-  name: string;
-  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
-  isActive: boolean;
-  mustChangePassword: boolean;
-};
-
 type AuthTokenPayload = {
   userId: number;
 };
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthenticatedUser;
-    }
-  }
-}
 
 export async function requireAuth(
   req: Request,
@@ -107,12 +90,16 @@ export function requireRole(
     if (!req.user) {
       return res.status(401).json({
         error: "Authentication required",
+        code: "AUTH_REQUIRED",
+        details: [],
       });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         error: "Access denied",
+        code: "ACCESS_DENIED",
+        details: [],
       });
     }
 
@@ -128,6 +115,8 @@ export function requirePasswordChangeComplete(
   if (!req.user) {
     return res.status(401).json({
       error: "Authentication required",
+      code: "AUTH_REQUIRED",
+      details: [],
     });
   }
 
@@ -135,6 +124,7 @@ export function requirePasswordChangeComplete(
     return res.status(403).json({
       error: "Password change required",
       code: "PASSWORD_CHANGE_REQUIRED",
+      details: [],
     });
   }
 

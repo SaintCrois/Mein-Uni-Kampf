@@ -7,6 +7,9 @@ import ticketsRouter from "./routes/tickets.js";
 import referenceRouter from "./routes/reference.js";
 import attachmentsRouter from "./routes/attachments.js";
 import authRouter from "./routes/auth.js";
+import staffRouter from "./routes/staff.js";
+import adminRouter from "./routes/admin.js";
+import { requireAuthUnlessLegacyTest } from "./middleware/requester.js";
 
 
 // getPrisma() is your lazy database handle. Call it INSIDE a route when you
@@ -27,6 +30,8 @@ app.use("/api/tickets", ticketsRouter);
 app.use("/api/tickets", attachmentsRouter);
 app.use("/api", referenceRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/staff", staffRouter);
+app.use("/api/admin", adminRouter);
 
 
 
@@ -53,7 +58,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
 // TODO(Issue 4): implement the route here.
 // ---------------------------------------------------------------------------
 
-app.get("/api/categories", async (_req: Request, res: Response) => {
+app.get("/api/categories", requireAuthUnlessLegacyTest, async (_req: Request, res: Response) => {
   try {
     const prisma = getPrisma();
     const categories = await prisma.category.findMany();

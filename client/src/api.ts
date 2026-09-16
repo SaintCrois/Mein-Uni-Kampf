@@ -87,8 +87,8 @@ export async function createTicket(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Requester-Id": String(input.requesterId),
     },
+    credentials: "include",
     body: JSON.stringify(input),
   });
 
@@ -102,7 +102,7 @@ export async function createTicket(
 
 export async function uploadTicketAttachments(
   ticketId: number,
-  requesterId: number,
+  _requesterId: number,
   files: File[],
 ): Promise<void> {
   if (files.length === 0) return;
@@ -117,9 +117,7 @@ export async function uploadTicketAttachments(
     `${API_URL}/api/tickets/${ticketId}/attachments`,
     {
       method: "POST",
-      headers: {
-        "X-Requester-Id": String(requesterId),
-      },
+      credentials: "include",
       body: formData,
     },
   );
@@ -186,22 +184,10 @@ export interface MyTicket {
 
 
 export async function getMyTickets(
-  requesterId: number,
+  _requesterId: number,
 ): Promise<MyTicket[]> {
-  console.log("GET MY TICKETS REQUEST", {
-    requesterId,
-    url: `${API_URL}/api/tickets`,
-  });
-
   const response = await fetch(`${API_URL}/api/tickets`, {
-    headers: {
-      "X-Requester-Id": String(requesterId),
-    },
-  });
-
-  console.log("GET MY TICKETS RESPONSE", {
-    requesterId,
-    status: response.status,
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -214,16 +200,7 @@ export async function getMyTickets(
 
   const data = await response.json();
 
-  console.log("GET MY TICKETS BODY", data);
-
   const tickets: MyTicket[] = data.data ?? data;
-
-  console.log("GET MY TICKETS PARSED", {
-    count: tickets.length,
-    ticketNumbers: tickets.map(
-      (ticket) => ticket.ticketNumber,
-    ),
-  });
 
   return tickets;
 }
@@ -268,14 +245,12 @@ export interface TicketDetail {
 
 export async function getTicketDetail(
   ticketId: number,
-  requesterId: number,
+  _requesterId: number,
 ): Promise<TicketDetail> {
   const response = await fetch(
     `${API_URL}/api/tickets/${ticketId}`,
     {
-      headers: {
-        "X-Requester-Id": String(requesterId),
-      },
+      credentials: "include",
     },
   );
 

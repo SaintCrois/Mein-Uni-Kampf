@@ -15,7 +15,7 @@ export function requirePasswordChangeComplete(
 
   if (req.user.mustChangePassword) {
     return res.status(403).json({
-      error: "Password change required before accessing this resource.",
+      error: "Password change required",
       code: "PASSWORD_CHANGE_REQUIRED",
       details: [],
     });
