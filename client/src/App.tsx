@@ -13,6 +13,7 @@ import ChangePassword from "./pages/ChangePassword";
 import { useEffect } from "react";
 import { checkSystem } from "./api";
 import StaffTickets from "./pages/StaffTickets";
+import StaffTicketDetail from "./pages/StaffTicketDetail";
 
 function AppContent() {
   const {
@@ -28,9 +29,10 @@ function AppContent() {
     | "change-password"
     | "my-tickets"
   | "ticket-detail"
-  | "create-ticket"
-  | "staff-tickets"
-  | "admin-users"
+    | "create-ticket"
+    | "staff-tickets"
+  | "staff-ticket-detail"
+    | "admin-users"
   >("home");
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -67,7 +69,11 @@ function AppContent() {
 
   function handleOpenTicket(ticketId: number) {
     setSelectedTicketId(ticketId);
-    setPage("ticket-detail");
+    setPage(
+      user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR"
+        ? "staff-ticket-detail"
+        : "ticket-detail",
+    );
   }
 
   async function handleLogout() {
@@ -205,6 +211,13 @@ function AppContent() {
               setPage("my-tickets");
             }
           }}
+        />
+      ) : page === "staff-ticket-detail" &&
+        selectedTicketId !== null &&
+        (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (
+        <StaffTicketDetail
+          ticketId={selectedTicketId}
+          onBack={() => setPage("staff-tickets")}
         />
       ) : page === "staff-tickets" ? (
         user.role === "IT_STAFF" || user.role === "ADMINISTRATOR" ? (

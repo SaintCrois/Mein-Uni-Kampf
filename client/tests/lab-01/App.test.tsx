@@ -1,100 +1,38 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import App from "../../src/App.js";
-import * as api from "../../src/api.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("App", () => {
-  it("renders the TokTickIT heading", () => {
-    render(<App />);
-
-    expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
-  });
-
-  it("shows Online and the seeded categories on success", async () => {
-    const mockCategories = [
-      { id: 1, name: "Account and Access" },
-      { id: 2, name: "Hardware" },
-      { id: 3, name: "Software" },
-      { id: 4, name: "Network" },
-    ];
-
-    vi.spyOn(api, "checkSystem").mockResolvedValue(mockCategories as any);
-
-    render(<App />);
-
-    const button = screen.getByText(/check system/i);
-
-    fireEvent.click(button);
-
-    expect(await screen.findByText(/online/i)).toBeInTheDocument();
-    expect(screen.getByText(/account and access/i)).toBeInTheDocument();
-    expect(screen.getByText(/hardware/i)).toBeInTheDocument();
-    expect(screen.getByText(/software/i)).toBeInTheDocument();
-    expect(screen.getByText(/network/i)).toBeInTheDocument();
-  });
-
-  it("shows an Offline error message when the API is unavailable", async () => {
-    vi.spyOn(api, "checkSystem").mockRejectedValue(
-      new Error("Failed to fetch category list."),
-    );
-
-    render(<App />);
-
-    const button = screen.getByText(/check system/i);
-
-    fireEvent.click(button);
-
-    expect(await screen.findByText(/offline/i)).toBeInTheDocument();
-  });
-
-  it("shows Change Requester after a requester is selected", async () => {
-    vi.spyOn(api, "getActiveRequesters").mockResolvedValue([
-      {
-        id: 1,
-        fullName: "Narin Chaiyo",
-        email: "narin.chaiyo@example.com",
-        isActive: true,
-      },
-      {
-        id: 2,
-        fullName: "Pimchanok Rattanakul",
-        email: "pimchanok.rattanakul@example.com",
-        isActive: true,
-      },
-    ]);
-
+  it("renders the TokTickIT application heading", () => {
     render(<App />);
 
     expect(
-      await screen.findByText("Select Development Requester"),
+      screen.getByRole("heading", { level: 1, name: /TokTickIT IT Service Desk/i }),
     ).toBeInTheDocument();
+  });
 
-    const requesterSelect = screen.getByRole("combobox", {
-      name: /Development Requester/,
-    });
+  it("shows the sign-in screen to unauthenticated visitors", () => {
+    render(<App />);
 
-    fireEvent.change(requesterSelect, {
-      target: { value: "1" },
-    });
+    expect(screen.getByRole("heading", { level: 2, name: "TokTickIT" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^sign in$/i })).toHaveLength(2);
+  });
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Continue",
-      }),
-    );
+  it("shows credentials inputs on the unauthenticated screen", () => {
+    render(<App />);
 
-    expect(
-      await screen.findByText("Narin Chaiyo"),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+  });
 
-    expect(
-      screen.getByRole("button", {
-        name: "Change Requester",
-      }),
-    ).toBeInTheDocument();
+  it("does not expose the obsolete development requester selector", () => {
+    render(<App />);
+
+    expect(screen.queryByText("Select Development Requester")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change Requester" })).not.toBeInTheDocument();
   });
 });

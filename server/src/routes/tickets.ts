@@ -239,7 +239,24 @@ router.get("/:id", requireAuthenticatedOrLegacyRequester, async (req, res) => {
         category: true,
         relatedSystem: true,
         requestedPriority: true,
+        itPriority: true,
         currentStatus: true,
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
         attachments: {
           orderBy: {
             uploadedAt: "asc",
@@ -277,10 +294,33 @@ router.get("/:id", requireAuthenticatedOrLegacyRequester, async (req, res) => {
         id: ticket.requestedPriority.id,
         name: ticket.requestedPriority.name,
       },
+      itPriority: ticket.itPriority
+        ? {
+            id: ticket.itPriority.id,
+            name: ticket.itPriority.name,
+          }
+        : null,
       currentStatus: {
         id: ticket.currentStatus.id,
         name: ticket.currentStatus.name,
       },
+      owner: ticket.owner
+        ? {
+            id: ticket.owner.id,
+            name: ticket.owner.name,
+            email: ticket.owner.email,
+            role: ticket.owner.role,
+          }
+        : null,
+      requester: ticket.requester
+        ? {
+            id: ticket.requester.id,
+            name: ticket.requester.name,
+            email: ticket.requester.email,
+            role: ticket.requester.role,
+          }
+        : null,
+      requesterResolvedIndicator: ticket.requesterResolvedIndicator,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
       attachments: ticket.attachments.map((attachment) => ({
