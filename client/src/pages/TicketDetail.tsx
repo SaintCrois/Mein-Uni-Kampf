@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useRequester } from "../context/RequesterContext";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -47,7 +46,6 @@ export default function TicketDetail({
   ticketId,
   onBack,
 }: TicketDetailProps) {
-  const { selectedRequester } = useRequester();
   const [ticket, setTicket] = useState<TicketDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,22 +55,16 @@ export default function TicketDetail({
       setLoading(true);
       setError("");
 
-      const requesterId = selectedRequester?.id;
-      if (!requesterId) {
-        throw new Error("Requester context is required.");
-      }
-
       const response = await fetch(
         `${API_URL}/api/tickets/${ticketId}`,
         {
-          headers: {
-            "X-Requester-Id": String(requesterId),
-          },
+          credentials: "include",
         },
       );
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
+
         throw new Error(
           data?.error || "Failed to fetch ticket.",
         );
@@ -91,9 +83,11 @@ export default function TicketDetail({
     }
   };
 
+
   useEffect(() => {
     loadTicket();
-  }, [ticketId, selectedRequester?.id]);
+  }, [ticketId]);
+
 
     function getPriorityClass(priority: string) {
         switch (priority.toLowerCase()) {
@@ -322,8 +316,6 @@ export default function TicketDetail({
                 onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    const requesterId = selectedRequester?.id;
-                    if (!requesterId) return;
 
                     try {
                     setError("");
@@ -332,9 +324,8 @@ export default function TicketDetail({
 
                     const res = await fetch(`${API_URL}/api/tickets/${ticket.id}/attachments`, {
                         method: "POST",
-                        headers: {
-                        "X-Requester-Id": String(requesterId),
-                        },
+                        credentials: "include",
+                        headers: {},
                         body: formData,
                     });
 
@@ -381,16 +372,13 @@ export default function TicketDetail({
                             type="button"
                             className="btn btn-sm btn-outline-success"
                             onClick={async () => {
-                                const requesterId = selectedRequester?.id;
-                                if (!requesterId) return;
 
                                 try {
                                 const response = await fetch(
                                     `${API_URL}/api/tickets/${ticket.id}/attachments/${attachment.id}/download`,
                                     {
-                                    headers: {
-                                        "X-Requester-Id": String(requesterId),
-                                    },
+                                      credentials: "include",
+                                    headers: {},
                                     },
                                 );
 
@@ -423,18 +411,15 @@ export default function TicketDetail({
                                 const reason = window.prompt("Please enter a removal reason:");
                                 if (!reason || !reason.trim()) return;
 
-                                const requesterId = selectedRequester?.id;
-                                if (!requesterId) return;
-
                                 try {
                                 const res = await fetch(
                                     `${API_URL}/api/tickets/${ticket.id}/attachments/${attachment.id}`,
                                     {
                                     method: "DELETE",
+                                    credentials: "include",
                                     headers: {
                                         "Content-Type": "application/json",
-                                        "X-Requester-Id": String(requesterId),
-                                    },
+                                      },
                                     body: JSON.stringify({ reason: reason.trim() }),
                                     },
                                 );

@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
 import { useEffect } from "react";
 import { checkSystem } from "./api";
+import StaffTickets from "./pages/StaffTickets";
 
 function AppContent() {
   const {
@@ -194,14 +195,32 @@ function AppContent() {
           refreshKey={refreshKey}
         />
       ) : page === "ticket-detail" &&
-        effectiveRequester &&
         selectedTicketId !== null ? (
         <TicketDetail
           ticketId={selectedTicketId}
-          onBack={() => setPage("my-tickets")}
+          onBack={() => {
+            if (user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR") {
+              setPage("staff-tickets");
+            } else {
+              setPage("my-tickets");
+            }
+          }}
         />
-      ) : page === "staff-tickets" && user.role === "IT_STAFF" ? (
-        <section className="card shadow-sm"><div className="card-body"><h2 className="h4">IT Staff Ticket Queue</h2><p className="mb-0">Ticket operations will be available in the staff workflow.</p></div></section>
+      ) : page === "staff-tickets" ? (
+        user.role === "IT_STAFF" || user.role === "ADMINISTRATOR" ? (
+          <StaffTickets onOpenTicket={handleOpenTicket} />
+        ) : (
+          <section className="card shadow-sm border-danger">
+            <div className="card-header bg-danger text-white">
+              <h2 className="h5 mb-0">Access Forbidden</h2>
+            </div>
+            <div className="card-body">
+              <p className="text-danger mb-0">
+                Access Denied: You do not have permission to view the IT Staff Ticket Queue.
+              </p>
+            </div>
+          </section>
+        )
       ) : page === "admin-users" && user.role === "ADMINISTRATOR" ? (
         <section className="card shadow-sm"><div className="card-body"><h2 className="h4">User Management</h2><p className="mb-0">User management controls will be available here.</p></div></section>
       ) : (

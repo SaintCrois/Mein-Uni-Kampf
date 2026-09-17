@@ -30,7 +30,12 @@ describe("Lab 3 - Issue 16: Requester Regression and Authenticated Identity", ()
   async function getRequesterWithTicket(email: string) {
     const requester = await prisma.user.findUniqueOrThrow({ where: { email } });
     const ticket = await prisma.ticket.findFirstOrThrow({
-      where: { requesterId: requester.id },
+      // Attachment lifecycle scenarios need a clean ticket. Selecting the
+      // oldest ticket allowed repeated runs to exhaust its five-file limit.
+      where: {
+        requesterId: requester.id,
+        attachments: { none: { status: "ACTIVE" } },
+      },
       orderBy: { id: "asc" },
     });
     return { requester, ticket };

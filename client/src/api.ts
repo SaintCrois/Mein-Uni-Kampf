@@ -17,7 +17,9 @@ export async function checkSystem(): Promise<SystemStatus> {
     throw new Error("Health check failed.");
   }
 
-  const categoriesResponse = await fetch(`${API_URL}/api/categories`);
+  const categoriesResponse = await fetch(`${API_URL}/api/categories`, {
+    credentials: "include",
+  });
 
   if (!categoriesResponse.ok) {
     throw new Error("Failed to fetch category list.");
@@ -337,5 +339,141 @@ export async function changePassword(
     throw new Error(data?.error || "Failed to change password.");
   }
 }
+
+export interface StaffTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  createdAt: string;
+
+  category: {
+    id: number;
+    name: string;
+  };
+
+  requestedPriority: {
+    id: number;
+    name: string;
+  };
+
+  itPriority: {
+    id: number;
+    name: string;
+  } | null;
+
+  currentStatus: {
+    id: number;
+    name: string;
+  };
+
+  owner: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
+
+  requester: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
+export interface StaffTicketResponse {
+  data?: StaffTicket[];
+  items?: StaffTicket[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface StaffTicketFilters {
+  search?: string;
+  status?: string;
+  categoryId?: number;
+  itPriority?: string;
+  requestedPriority?: string;
+  ownership?: "all" | "unassigned" | "mine";
+  sortBy?: "createdAt" | "ticketNumber";
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export async function getStaffTickets(
+  filters: StaffTicketFilters = {},
+): Promise<StaffTicketResponse> {
+  const params = new URLSearchParams();
+
+  if (filters.search?.trim()) {
+    params.set("search", filters.search.trim());
+  }
+
+  if (filters.status?.trim()) {
+    params.set("status", filters.status.trim());
+  }
+
+  if (filters.categoryId !== undefined) {
+    params.set("categoryId", String(filters.categoryId));
+  }
+  
+  if (filters.requestedPriority?.trim()) {
+    params.set(
+      "requestedPriority",
+      filters.requestedPriority.trim(),
+    );
+  }
+
+  if (filters.itPriority?.trim()) {
+    params.set("itPriority", filters.itPriority.trim());
+  }
+
+  if (filters.ownership) {
+    params.set("ownership", filters.ownership);
+  }
+
+  if (filters.sortBy) {
+    params.set("sortBy", filters.sortBy);
+  }
+
+  if (filters.sortOrder) {
+    params.set("sortOrder", filters.sortOrder);
+  }
+
+  if (filters.page !== undefined) {
+    params.set("page", String(filters.page));
+  }
+
+  if (filters.pageSize !== undefined) {
+    params.set("pageSize", String(filters.pageSize));
+  }
+
+  const response = await fetch(
+    `${API_URL}/api/staff/tickets?${params.toString()}`,
+    {
+      credentials: "include",
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || "Failed to fetch staff ticket queue.",
+    );
+  }
+
+  return {
+    ...data,
+    data: Array.isArray(data.data)
+      ? data.data
+      : Array.isArray(data.items)
+        ? data.items
+        : [],
+  };
+}
+
 
 
