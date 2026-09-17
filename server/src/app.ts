@@ -20,7 +20,12 @@ void getPrisma;
 // Supertest can import `app` without opening a port. Do not merge these files.
 export const app = express();
 
-app.use(cors());          // already wired: lets the Vite dev server call this API
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);          // already wired: lets the Vite dev server call this API
 app.use(express.json());
 app.use(cookieParser());
 
