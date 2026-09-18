@@ -191,7 +191,7 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
             </p>
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex flex-wrap align-items-center gap-2">
             <span className="badge bg-secondary fs-6" aria-label="Ticket count">
               {totalItems} tickets
             </span>
@@ -335,8 +335,8 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
 
         {/* Error State */}
         {error && !loading && (
-          <div className="alert alert-danger d-flex justify-content-between align-items-center">
-            <span>{error}</span>
+          <div className="alert alert-danger d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+            <span className="zen-break-anywhere">{error}</span>
             <button
               type="button"
               className="btn btn-sm btn-outline-danger"
@@ -488,8 +488,8 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
               {tickets.map((ticket) => (
                 <div key={ticket.id} className="card border shadow-sm">
                   <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-start mb-2">
-                      <strong className="fs-6 text-primary">
+                    <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                      <strong className="fs-6 text-primary zen-break-anywhere">
                         {ticket.ticketNumber}
                       </strong>
                       <span
@@ -499,7 +499,7 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
                       </span>
                     </div>
 
-                    <h5 className="card-title fs-6 mb-2">{ticket.summary}</h5>
+                    <h5 className="card-title fs-6 mb-2 zen-break-anywhere">{ticket.summary}</h5>
 
                     <div className="d-flex flex-wrap gap-2 mb-2">
                       <span className="badge bg-light text-dark border">
@@ -523,7 +523,7 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
                       )}
                     </div>
 
-                    <div className="text-muted small mb-3">
+                    <div className="text-muted small mb-3 zen-break-anywhere">
                       <div>
                         <strong>Requester:</strong> {ticket.requester.name} (
                         {ticket.requester.email})
@@ -555,12 +555,12 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
             </div>
 
             {/* Pagination Controls */}
-            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-4 pt-3 border-top">
+            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mt-4 pt-3 border-top">
               <span className="text-muted small">
                 Showing {startItem} - {endItem} of {totalItems} tickets
               </span>
 
-              <div className="d-flex align-items-center gap-2">
+              <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
                 <button
                   type="button"
                   className="btn btn-outline-secondary btn-sm"

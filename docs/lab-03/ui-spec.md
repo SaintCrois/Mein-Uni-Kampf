@@ -162,13 +162,45 @@ Extends the read-only Lab 2 Ticket Detail view with communication and resolution
 
 ---
 
-## 6. Visual Inspection Checklist
+## 6. Implemented Feedback, Modes, and Accessibility
 
-- [ ] **Color Contrast**: All text satisfies WCAG AA contrast against backgrounds (including badges and alerts).
-- [ ] **Role Indicators**: Role badges (`Requester`, `IT Staff`, `Administrator`) are instantly recognizable.
-- [ ] **Public vs Internal Separation**: Public Comments (green) and Internal Notes (amber) have high visual distinction.
-- [ ] **Editable vs Read-Only Clarity**: Read-only fields have distinct background `#F3F6F4` and border styling.
-- [ ] **Loading & Busy States**: Login, password change, ticket updates, and user saves show spinner and disabled button states.
-- [ ] **Form Validation Alignment**: Field error messages appear directly below their associated inputs in red text.
-- [ ] **Responsive Integrity**: No horizontal scrollbars or element clipping on Desktop (1280px), Tablet (800px), or Mobile (390px).
-- [ ] **Accessible Inputs**: All inputs and controls have associated `<label htmlFor="...">` and visible focus outlines.
+All screens use the same card surface, green primary action treatment, and compact badges. Read-only ticket values use the pale muted surface (`#F3F6F4`) and muted foreground (`#496157`); editable values retain the standard white form surface. Validation feedback appears directly under its field for requester ticket creation. Authentication and management validation/failure feedback is announced with `role="alert"`; successful updates and loading states use `role="status"` or a labelled spinner.
+
+| Screen | Controls and modes | Feedback and role behavior |
+| --- | --- | --- |
+| Login | Email/password fields, full-width sign-in action | Required-credential and authentication failures are announced; inputs and action disable while signing in. |
+| Change Password | Current, new, and confirmation password fields | Mandatory-change context is amber; length, mismatch, and API failure feedback is clear before submission; success is confirmed before navigation. |
+| Requester views | My Tickets, Create Ticket, ticket detail, attachments, resolution indicator, public comment form | Requester-only navigation is rendered for authenticated requesters. Create-ticket validation is field-adjacent; loading, successful creation, empty, and failure states are visible. |
+| IT Staff Queue | Search, filters, sorting, refresh, pagination, ticket action | Staff navigation only exposes Ticket Queue. Loading, forbidden, failure/retry, empty, and no-results/reset states are represented. |
+| IT Staff Detail | Claim/assignee, IT-priority, permitted status controls, attachments, public comments, internal notes | Operational success/failure alerts are dismissible. Public and internal channels remain visually and textually distinct; notes are limited to staff/admin. |
+| User Management | Search/filter, create/edit modal, active/role safety controls, initial-password reset | Administrator-only navigation exposes User Management. Modal errors remain inside the modal, self-deactivation and sole-admin restrictions include explanatory help text, and save is disabled while busy. |
+
+### Keyboard and semantic behavior
+
+- Every form control has a visible programmatic label; icon-only close controls have an accessible name.
+- Keyboard focus uses a high-visibility green-ring treatment for fields and a gold outline for buttons/links, including controls on the green header.
+- Header navigation is role-specific: unauthorized destinations are not rendered. Buttons retain native button semantics and use logical document/tab order.
+- Status, role, and priority badges preserve readable foreground/background contrast and wrap rather than force layout overflow.
+
+## 7. Responsive Verification Rules
+
+The finalized interface was checked at 1280px desktop, 800px tablet, and 390px mobile widths.
+
+| Area | Desktop (>=992px) | Tablet (768-991px) | Mobile (<768px) |
+| --- | --- | --- | --- |
+| Application shell/header | Full header actions in one row | Header wraps without hiding identity or actions | Reduced gutters; action buttons expand to usable full width and header text can wrap. |
+| Staff queue | Full table with intentional table-local overflow available if needed | Ticket cards replace the dense table | Ticket cards, badges, metadata, and pagination wrap; no document-level horizontal scroll. |
+| Ticket detail | Two columns for operations and communications | Stacks to one column | Toolbars, select/action groups, comment headers, and timestamps wrap or become full width. |
+| User management | Full table and standard modal | Table remains contained by its local responsive region | Modal is `calc(100% - 1.5rem)`, actions stack, and only the data table may scroll horizontally. |
+| Forms/feedback | Multi-column requester fields where appropriate | Bootstrap columns collapse naturally | Card padding reduces, validation remains below the associated control, and long API messages can wrap. |
+
+## 8. Visual Inspection Checklist
+
+- [x] **Color Contrast**: Zen Green body text, primary actions, alerts, and role/status badges use readable foreground/background combinations.
+- [x] **Role Indicators**: Requester, IT Staff, and Administrator each use a consistent distinct badge treatment.
+- [x] **Public vs Internal Separation**: Public Comments use green; Internal Notes use amber with an explicit private label.
+- [x] **Editable vs Read-Only Clarity**: Read-only values use the documented muted surface and border styling.
+- [x] **Loading & Busy States**: Authentication, queues, ticket operations, and user save actions communicate busy state and prevent duplicate actions.
+- [x] **Form Validation Alignment**: Requester validation remains field-adjacent; modal failures appear inside the visible modal.
+- [x] **Responsive Integrity**: Mobile body overflow is suppressed; responsive cards, wrapped toolbars, local table scrolling, and responsive modal dimensions prevent clipping and overlap.
+- [x] **Accessible Inputs**: Inputs have labels, status/error feedback has live semantics, and keyboard focus is visibly indicated.
