@@ -240,6 +240,23 @@ export interface TicketDetail {
     id: number;
     name: string;
   };
+  itPriority?: {
+    id: number;
+    name: string;
+  } | null;
+  owner?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
+  requester?: {
+    id: number;
+    name: string;
+    email: string;
+    role?: string;
+  } | null;
+  requesterResolvedIndicator?: boolean;
   createdAt: string;
   updatedAt: string;
   attachments: TicketAttachment[];
@@ -262,6 +279,19 @@ export async function getTicketDetail(
     throw new Error(
       data?.error || "Failed to fetch ticket details.",
     );
+  }
+
+  return response.json();
+}
+
+export async function getStaffTicketDetail(ticketId: number): Promise<TicketDetail> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to fetch staff ticket details.");
   }
 
   return response.json();
@@ -475,5 +505,202 @@ export async function getStaffTickets(
   };
 }
 
+export interface CommentAuthor {
+  id: number;
+  name: string;
+  role: string;
+}
 
+export interface PublicComment {
+  id: number;
+  author: CommentAuthor;
+  content: string;
+  createdAt: string;
+}
 
+export interface InternalNote {
+  id: number;
+  author: CommentAuthor;
+  content: string;
+  createdAt: string;
+}
+
+export interface StaffAssignee {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export async function getStaffAssignees(): Promise<StaffAssignee[]> {
+  const response = await fetch(`${API_URL}/api/staff/assignees`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to fetch assignees.");
+  }
+
+  const result = await response.json();
+  return result.data ?? [];
+}
+
+export async function claimTicket(ticketId: number): Promise<TicketDetail> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/claim`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to claim ticket.");
+  }
+
+  return response.json();
+}
+
+export async function assignTicket(
+  ticketId: number,
+  ownerId: number,
+): Promise<TicketDetail> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/assign`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ownerId }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to assign ticket.");
+  }
+
+  return response.json();
+}
+
+export async function updateTicketPriority(
+  ticketId: number,
+  itPriority: string,
+): Promise<TicketDetail> {
+  const response = await fetch(
+    `${API_URL}/api/staff/tickets/${ticketId}/priority`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ itPriority }),
+    },
+  );
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to update ticket priority.");
+  }
+
+  return response.json();
+}
+
+export async function updateTicketStatus(
+  ticketId: number,
+  status: string,
+): Promise<TicketDetail> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to update ticket status.");
+  }
+
+  return response.json();
+}
+
+export async function getPublicComments(
+  ticketId: number,
+): Promise<PublicComment[]> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to fetch public comments.");
+  }
+
+  const result = await response.json();
+  return result.data ?? [];
+}
+
+export async function createPublicComment(
+  ticketId: number,
+  content: string,
+): Promise<PublicComment> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to post public comment.");
+  }
+
+  const result = await response.json();
+  return result.data ?? result;
+}
+
+export async function getInternalNotes(
+  ticketId: number,
+): Promise<InternalNote[]> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to fetch internal notes.");
+  }
+
+  const result = await response.json();
+  return result.data ?? [];
+}
+
+export async function createInternalNote(
+  ticketId: number,
+  content: string,
+): Promise<InternalNote> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to create internal note.");
+  }
+
+  const result = await response.json();
+  return result.data ?? result;
+}
