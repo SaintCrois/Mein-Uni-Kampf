@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { checkSystem } from "./api";
 import StaffTickets from "./pages/StaffTickets";
 import StaffTicketDetail from "./pages/StaffTicketDetail";
+import UserManagement from "./pages/UserManagement";
 
 function AppContent() {
   const {
@@ -235,7 +236,7 @@ function AppContent() {
           </section>
         )
       ) : page === "admin-users" && user.role === "ADMINISTRATOR" ? (
-        <section className="card shadow-sm"><div className="card-body"><h2 className="h4">User Management</h2><p className="mb-0">User management controls will be available here.</p></div></section>
+        <UserManagement />
       ) : (
         <>
           <div className="mb-4">
