@@ -92,42 +92,28 @@ function AppContent() {
     : null;
 
   return (
-    <div className="container py-4">
+    <div className="container py-4 app-shell">
       <header
-        className="mb-4 p-3 rounded"
-        style={{
-          backgroundColor: "#006B3C",
-          color: "white",
-        }}
+        className="app-header mb-4 p-3 rounded"
       >
         <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
-          <div>
+          <div className="app-header__identity">
             <h1 className="h3 mb-1">
               TokTickIT{" "}
               <span style={{ color: "#EAF6EF" }}>IT Service Desk</span>
             </h1>
 
             {user ? (
-              <div className="fw-bold d-flex align-items-center gap-2">
+              <div className="fw-bold d-flex flex-wrap align-items-center gap-2">
                 <span>{user.name}</span>
                 {user.role === "REQUESTER" && (
-                  <span className="badge bg-secondary">Requester</span>
+                  <span className="badge badge-role-requester">Requester</span>
                 )}
                 {user.role === "IT_STAFF" && (
-                  <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("staff-tickets")}>
-                    Ticket Queue
-                  </button>
+                  <span className="badge badge-role-staff">IT Staff</span>
                 )}
                 {user.role === "ADMINISTRATOR" && (
-                  <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("admin-users")}>
-                    User Management
-                  </button>
-                )}
-                {user.role === "IT_STAFF" && (
-                  <span className="badge bg-primary">IT Staff</span>
-                )}
-                {user.role === "ADMINISTRATOR" && (
-                  <span className="badge bg-dark">Administrator</span>
+                  <span className="badge badge-role-admin">Administrator</span>
                 )}
               </div>
             ) : selectedRequester ? (
@@ -135,7 +121,7 @@ function AppContent() {
             ) : null}
           </div>
 
-          <div className="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+          <div className="app-header__actions d-flex flex-column flex-sm-row align-items-sm-center gap-2">
             {user ? (
               <>
                 {user.role === "REQUESTER" && (
@@ -155,6 +141,16 @@ function AppContent() {
                       Create Ticket
                     </button>
                   </>
+                )}
+                {user.role === "IT_STAFF" && (
+                  <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("staff-tickets")}>
+                    Ticket Queue
+                  </button>
+                )}
+                {user.role === "ADMINISTRATOR" && (
+                  <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("admin-users")}>
+                    User Management
+                  </button>
                 )}
                 <button
                   type="button"

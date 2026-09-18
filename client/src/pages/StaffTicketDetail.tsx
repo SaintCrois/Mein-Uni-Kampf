@@ -285,7 +285,7 @@ export default function StaffTicketDetail({
   return (
     <div className="d-flex flex-column gap-3">
       {/* Top action bar */}
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="staff-detail-toolbar d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
         <button
           type="button"
           className="btn btn-outline-secondary btn-sm"
@@ -294,7 +294,7 @@ export default function StaffTicketDetail({
           &larr; Back to Queue
         </button>
 
-        <span className="text-muted small">
+        <span className="text-muted small zen-break-anywhere">
           Ticket ID: #{ticket.id} | Created: {new Date(ticket.createdAt).toLocaleString()}
         </span>
       </div>
@@ -342,7 +342,7 @@ export default function StaffTicketDetail({
           {/* Main Ticket Info Card */}
           <div className="card shadow-sm border">
             <div
-              className="card-header d-flex justify-content-between align-items-center text-white"
+              className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 text-white"
               style={{ backgroundColor: "#006B3C" }}
             >
               <h2 className="h5 mb-0 fw-bold">{ticket.ticketNumber}</h2>
@@ -355,7 +355,7 @@ export default function StaffTicketDetail({
               <h3 className="h5 fw-bold mb-3">{ticket.summary}</h3>
 
               {/* Requester, Category, System */}
-              <div className="row g-2 mb-3 p-2 rounded" style={{ backgroundColor: "#F3F6F4" }}>
+              <div className="row g-2 mb-3 p-2 rounded zen-readonly" style={{ backgroundColor: "#F3F6F4" }}>
                 <div className="col-6 col-md-4">
                   <small className="text-muted d-block">Requester</small>
                   <strong>{ticket.requester?.name ?? "Unknown"}</strong>
@@ -435,7 +435,7 @@ export default function StaffTicketDetail({
               {/* Ownership Controls */}
               <div>
                 <label className="form-label fw-semibold small mb-1">Ownership</label>
-                <div className="d-flex flex-wrap align-items-center gap-2">
+                <div className="staff-operation-controls d-flex flex-wrap align-items-center gap-2">
                   <span className="small text-muted me-2">
                     Current: <strong>{ticket.owner ? ticket.owner.name : "Unassigned"}</strong>
                   </span>
@@ -533,7 +533,7 @@ export default function StaffTicketDetail({
                       This ticket is in a terminal status ({ticket.currentStatus.name}) and cannot be transitioned further.
                     </span>
                   ) : (
-                    <div className="d-flex align-items-center gap-2 ms-auto">
+                    <div className="d-flex flex-wrap align-items-center gap-2 ms-lg-auto">
                       <select
                         className="form-select form-select-sm"
                         style={{ width: "auto", minWidth: "160px" }}
@@ -570,7 +570,7 @@ export default function StaffTicketDetail({
           {/* Public Comments Box (Green Accent) */}
           <div className="card shadow-sm border border-success">
             <div
-              className="card-header text-white d-flex justify-content-between align-items-center py-2"
+              className="communication-header card-header text-white d-flex justify-content-between align-items-center py-2"
               style={{ backgroundColor: "#006B3C" }}
             >
               <h4 className="h6 mb-0 fw-bold">Public Comments</h4>
@@ -595,7 +595,7 @@ export default function StaffTicketDetail({
                       key={comment.id}
                       className="p-2 rounded border bg-white shadow-sm"
                     >
-                      <div className="d-flex justify-content-between align-items-center mb-1">
+                      <div className="d-flex flex-wrap justify-content-between align-items-center gap-1 mb-1">
                         <div className="d-flex align-items-center gap-1">
                           <strong className="small">{comment.author.name}</strong>
                           <span
@@ -666,7 +666,7 @@ export default function StaffTicketDetail({
             style={{ borderColor: "#D97706" }}
           >
             <div
-              className="card-header text-white d-flex justify-content-between align-items-center py-2"
+              className="communication-header card-header text-white d-flex justify-content-between align-items-center py-2"
               style={{ backgroundColor: "#D97706" }}
             >
               <h4 className="h6 mb-0 fw-bold d-flex align-items-center gap-1">
@@ -694,7 +694,7 @@ export default function StaffTicketDetail({
                       className="p-2 rounded border bg-white shadow-sm"
                       style={{ borderLeft: "3px solid #D97706" }}
                     >
-                      <div className="d-flex justify-content-between align-items-center mb-1">
+                      <div className="d-flex flex-wrap justify-content-between align-items-center gap-1 mb-1">
                         <div className="d-flex align-items-center gap-1">
                           <strong className="small">{note.author.name}</strong>
                           <span
