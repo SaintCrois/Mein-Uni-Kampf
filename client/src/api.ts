@@ -305,6 +305,50 @@ export interface User {
   mustChangePassword: boolean;
 }
 
+export interface ManagedUser extends User {
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserInput {
+  name: string;
+  email: string;
+  role: User["role"];
+  isActive: boolean;
+}
+
+async function adminRequest(path: string, init?: RequestInit) {
+  const response = await fetch(`${API_URL}/api/admin${path}`, {
+    ...init,
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...init?.headers },
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.error || "User management request failed.");
+  return data;
+}
+
+export async function getUsers(search = "", role = ""): Promise<ManagedUser[]> {
+  const params = new URLSearchParams();
+  if (search.trim()) params.set("search", search.trim());
+  if (role) params.set("role", role);
+  const data = await adminRequest(`/users?${params.toString()}`);
+  return data.data ?? data;
+}
+
+export async function createUser(input: UserInput & { initialPassword: string }): Promise<ManagedUser> {
+  return adminRequest("/users", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function updateUser(id: number, input: UserInput): Promise<ManagedUser> {
+  return adminRequest(`/users/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+}
+
+export async function resetUserPassword(id: number, initialPassword: string): Promise<void> {
+  await adminRequest(`/users/${id}/reset-password`, { method: "POST", body: JSON.stringify({ initialPassword }) });
+}
+
 export async function login(
   email: string,
   password: string,
