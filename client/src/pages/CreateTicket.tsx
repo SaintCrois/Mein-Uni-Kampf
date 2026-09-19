@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useRequester } from "../context/RequesterContext";
 import {
   createTicket,
   getCategories,
@@ -11,13 +10,14 @@ import {
 
 
 type CreateTicketProps = {
+  requester: { id: number; fullName: string; email: string; isActive: boolean };
   onTicketCreated?: () => void;
 };
 
 export default function CreateTicket({
+  requester,
   onTicketCreated,
 }: CreateTicketProps) {
-  const { selectedRequester } = useRequester();
 
   const [categories, setCategories] = useState<ReferenceItem[]>([]);
   const [systems, setSystems] = useState<ReferenceItem[]>([]);
@@ -121,23 +121,13 @@ export default function CreateTicket({
     setTicketCreatedAt("");
     setError("");
 
-    if (!selectedRequester) {
-      setError("Please select a requester first.");
-      return;
-    }
-
     if (!validate()) return;
 
     setSubmitting(true);
 
     try {
-      console.log("CREATING TICKET", {
-        requesterId: selectedRequester.id,
-        requesterName: selectedRequester.fullName,
-      });
-
       const result = await createTicket({
-        requesterId: selectedRequester.id,
+        requesterId: requester.id,
         categoryId: Number(categoryId),
         relatedSystemId: Number(relatedSystemId),
         summary,
@@ -147,16 +137,10 @@ export default function CreateTicket({
       });
 
 
-      console.log("TICKET CREATED", {
-        id: result.id,
-        ticketNumber: result.ticketNumber,
-        requesterId: result.requesterId,
-      });
-
     if (attachments.length > 0) {
         await uploadTicketAttachments(
             result.id,
-            selectedRequester.id,
+            requester.id,
             attachments,
         );
     }
@@ -278,7 +262,7 @@ export default function CreateTicket({
               </label>
               <input
                 className="form-control"
-                value={selectedRequester?.fullName ?? ""}
+                value={requester.fullName}
                 readOnly
                 style={{
                   backgroundColor: "#F3F6F4",
