@@ -4,7 +4,6 @@ import {
   useRequester,
 } from "./context/RequesterContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import RequesterSelection from "./pages/RequesterSelection";
 import CreateTicket from "./pages/CreateTicket";
 import MyTickets from "./pages/MyTickets";
 import TicketDetail from "./pages/TicketDetail";
@@ -65,8 +64,19 @@ function AppContent() {
   }
 
   useEffect(() => {
+    if (user?.role === "REQUESTER") {
+      setSelectedRequester({
+        id: user.id,
+        fullName: user.name,
+        email: user.email,
+        isActive: true,
+      });
+    } else {
+      setSelectedRequester(null);
+    }
+
     if (user && !user.mustChangePassword && page === "home") setPage(primaryPage());
-  }, [user]);
+  }, [user, page, setSelectedRequester]);
 
   function handleOpenTicket(ticketId: number) {
     setSelectedTicketId(ticketId);

@@ -136,7 +136,9 @@ export interface ReferenceItem {
 }
 
 export async function getCategories(): Promise<ReferenceItem[]> {
-  const response = await fetch(`${API_URL}/api/categories`);
+  const response = await fetch(`${API_URL}/api/categories`, {
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch categories.");
@@ -146,7 +148,9 @@ export async function getCategories(): Promise<ReferenceItem[]> {
 }
 
 export async function getRelatedSystems(): Promise<ReferenceItem[]> {
-  const response = await fetch(`${API_URL}/api/related-systems`);
+  const response = await fetch(`${API_URL}/api/related-systems`, {
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch related systems.");
@@ -156,7 +160,9 @@ export async function getRelatedSystems(): Promise<ReferenceItem[]> {
 }
 
 export async function getPriorities(): Promise<ReferenceItem[]> {
-  const response = await fetch(`${API_URL}/api/priorities`);
+  const response = await fetch(`${API_URL}/api/priorities`, {
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch priorities.");
