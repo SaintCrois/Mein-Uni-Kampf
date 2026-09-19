@@ -82,3 +82,80 @@ The following review conversations are retained as an addendum to the release re
 **Author response:** "Thank you! Please merge."
 
 **Approval:** `bravefe` approved the changes and merged commit `d610341` into `lab3-staging`.
+
+---
+
+## Pull Requests I reviewed for my partner (bravefe/cpe334_lab01_67070503427)
+
+| PR | Branch | Reviewer verdict |
+|----|--------|------------------|
+| [#44](https://github.com/bravefe/cpe334_lab01_67070503427/pull/44) | `document/lab3` | Approved |
+| [#46](https://github.com/bravefe/cpe334_lab01_67070503427/pull/46) | `feature/lab3-data-model` | Approved (Changes requested & addressed) |
+| [#48](https://github.com/bravefe/cpe334_lab01_67070503427/pull/48) | `feature/12-lab3-auth` | Approved |
+| [#49](https://github.com/bravefe/cpe334_lab01_67070503427/pull/49) | `feature/14-lab3-staff-ticket-management` | Approved |
+| [#50](https://github.com/bravefe/cpe334_lab01_67070503427/pull/50) | `feature/lab3-admin-users` | Approved |
+| [#51](https://github.com/bravefe/cpe334_lab01_67070503427/pull/51) | `feature/16-lab3-integration-qa` | Pending |
+
+---
+
+### PR #44 (`document/lab3`)
+
+**My review comment:** Approved. The Lab 3 specification documents and issue board setup were complete and in order.
+
+**Partner's response:** "Please merge, thank you."
+
+**Approval:** `SaintCrois` approved the changes and merged commit `42f8406` into `lab3-staging`.
+
+---
+
+### PR #46 (`feature/lab3-data-model`)
+
+**My review comment:** "Looking great! I am not quite sure about uploading the uploads into GitHub. If you would like to fix that, you may do it now. If not, then please get to me when you are ready to merge!"
+
+**Partner's response:** "I have removed the uploaded files and updated .gitignore to exclude the uploads folder. If there is nothing else left, please proceed to merge."
+
+**Approval:** `SaintCrois` approved the changes and merged commit `169a961` into `lab3-staging`.
+
+---
+
+### PR #48 (`feature/12-lab3-auth`)
+
+**My review comment:** Approved. Authentication, authorization, application shell, and authenticated requester workflow were all correctly implemented.
+
+**Partner's response:** "Great, thanks. Please merge."
+
+**Approval:** `SaintCrois` approved the changes and merged commit `7c7c1b4` into `lab3-staging`.
+
+---
+
+### PR #49 (`feature/14-lab3-staff-ticket-management`)
+
+**My review comment:** Approved. IT Staff ticket queue, ticket detail operations, public comments, and internal notes were all implemented correctly.
+
+**Partner's response:** "Nice, please merge."
+
+**Partner follow-up:** "Wait, I noticed a UI bug and am fixing it."
+
+**Partner follow-up (2):** "I have fixed the UI issues, including consistency updates and the resolution summary behavior. Please let me know when you are ready for the final review."
+
+**Approval:** `SaintCrois` approved the changes and merged commit `b9f99cf` into `lab3-staging`.
+
+---
+
+### PR #50 (`feature/lab3-admin-users`)
+
+**My review comment:** Approved. Administrator user management API and UI were implemented correctly, including all security restrictions and field validation.
+
+**Partner's response:** "Thank you, please merge."
+
+**Approval:** `SaintCrois` approved the changes and merged commit `23f00c6` into `lab3-staging`.
+
+---
+
+### PR #51 (`feature/16-lab3-integration-qa`)
+
+**My review comment:** Great work! Please let me know when you would like it merged.
+
+**Partner's response:** "Thank you, please merge."
+
+**Approval:** `SaintCrois` approved the changes and merged commit into `lab3-staging`.

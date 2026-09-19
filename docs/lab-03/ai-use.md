@@ -1,6 +1,6 @@
 # Lab 3 — AI Use and Reflection
 
-**LLM / coding agent used:** OpenAI Codex (GPT-5)
+**LLM / coding agent used:** OpenAI Codex (GPT-5), Gemini 3.8 Flash, Claude Sonnet 4.6
 
 ## Selected Key Prompts
 
