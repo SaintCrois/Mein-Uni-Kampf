@@ -55,8 +55,19 @@ function AppContent() {
   }
 
   useEffect(() => {
+    if (user?.role === "REQUESTER") {
+      setSelectedRequester({
+        id: user.id,
+        fullName: user.name,
+        email: user.email,
+        isActive: true,
+      });
+    } else {
+      setSelectedRequester(null);
+    }
+
     if (user && !user.mustChangePassword && page === "home") setPage(primaryPage());
-  }, [user]);
+  }, [user, page, setSelectedRequester]);
 
   function handleOpenTicket(ticketId: number) {
     setSelectedTicketId(ticketId);
