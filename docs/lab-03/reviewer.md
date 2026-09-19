@@ -29,8 +29,8 @@ Issue 22 does not introduce product code. It records the final release verificat
 | --- | --- | --- |
 | Database migration status | 3 migrations; schema up to date | Ready for maintainer approval. |
 | Seed data | Idempotent seed completed; required active/inactive users and varied tickets verified | Ready for maintainer approval. |
-| Server API, security, and Lab 2 regression tests | 149 passed, 0 failed | Ready for maintainer approval. |
-| Client component and regression tests | 36 passed, 0 failed | Ready for maintainer approval. |
+| Server API, security, and Lab 2 regression tests | 148 passed, 0 failed | Ready for maintainer approval. |
+| Client component and regression tests | 33 passed, 0 failed | Ready for maintainer approval. |
 | Playwright E2E | 12 passed, 0 failed across desktop, tablet, and mobile | Ready for maintainer approval. |
 | Acceptance-criterion traceability | AC-01 through AC-15 mapped in `tests.md` | Ready for maintainer approval. |
 | UI screenshot evidence | 18 screenshots under `artifacts/lab-03/screenshots/` | Ready for maintainer approval. |

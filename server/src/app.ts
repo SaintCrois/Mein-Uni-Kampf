@@ -2,7 +2,6 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { getPrisma } from "./prisma.js";
-import requestersRouter from "./routes/requesters.js";
 import ticketsRouter from "./routes/tickets.js";
 import referenceRouter from "./routes/reference.js";
 import attachmentsRouter from "./routes/attachments.js";
@@ -29,8 +28,6 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-app.use("/api/dev-requesters", requestersRouter);
-app.use("/api/requesters", requestersRouter);
 app.use("/api/tickets", ticketsRouter);
 app.use("/api/tickets", attachmentsRouter);
 app.use("/api", referenceRouter);

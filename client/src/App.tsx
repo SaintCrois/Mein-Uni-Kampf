@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  RequesterProvider,
-  useRequester,
-} from "./context/RequesterContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import RequesterSelection from "./pages/RequesterSelection";
 import CreateTicket from "./pages/CreateTicket";
 import MyTickets from "./pages/MyTickets";
 import TicketDetail from "./pages/TicketDetail";
@@ -17,11 +12,6 @@ import StaffTicketDetail from "./pages/StaffTicketDetail";
 import UserManagement from "./pages/UserManagement";
 
 function AppContent() {
-  const {
-    selectedRequester,
-    setSelectedRequester,
-  } = useRequester();
-
   const { user, logout } = useAuth();
 
   const [page, setPage] = useState<
@@ -80,7 +70,6 @@ function AppContent() {
   async function handleLogout() {
     try {
       await logout();
-      setSelectedRequester(null);
       setPage("login");
     } catch (e) {
       console.error("Logout failed:", e);
@@ -116,8 +105,6 @@ function AppContent() {
                   <span className="badge badge-role-admin">Administrator</span>
                 )}
               </div>
-            ) : selectedRequester ? (
-              <div className="fw-bold">{selectedRequester.fullName}</div>
             ) : null}
           </div>
 
@@ -186,6 +173,7 @@ function AppContent() {
         <Login onSuccess={() => setPage("home")} />
       ) : page === "create-ticket" && effectiveRequester ? (
         <CreateTicket
+          requester={effectiveRequester}
           onTicketCreated={() => {
             setRefreshKey((current) => current + 1);
             setPage("my-tickets");
@@ -193,6 +181,7 @@ function AppContent() {
         />
       ) : page === "my-tickets" && effectiveRequester ? (
         <MyTickets
+          requester={effectiveRequester}
           onOpenTicket={handleOpenTicket}
           onCreateTicket={() => setPage("create-ticket")}
           refreshKey={refreshKey}
@@ -273,9 +262,7 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <RequesterProvider>
-        <AppContent />
-      </RequesterProvider>
+      <AppContent />
     </AuthProvider>
   );
 }

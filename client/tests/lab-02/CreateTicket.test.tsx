@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import CreateTicket from "../../src/pages/CreateTicket";
-import { RequesterProvider } from "../../src/context/RequesterContext";
 import * as api from "../../src/api";
 
 const requester = {
@@ -13,13 +12,7 @@ const requester = {
 };
 
 function renderCreateTicket() {
-  localStorage.setItem("requester", JSON.stringify(requester));
-
-  return render(
-    <RequesterProvider>
-      <CreateTicket />
-    </RequesterProvider>,
-  );
+  return render(<CreateTicket requester={requester} />);
 }
 
 beforeEach(() => {

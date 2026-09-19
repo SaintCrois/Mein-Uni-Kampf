@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { getMyTickets, MyTicket } from "../api";
-import { useRequester } from "../context/RequesterContext";
 
 type MyTicketsProps = {
+  requester: { id: number; fullName: string };
   onOpenTicket: (ticketId: number) => void;
   onCreateTicket: () => void;
   refreshKey?: number;
 };
 
 export default function MyTickets({
+  requester,
   onOpenTicket,
   onCreateTicket,
   refreshKey = 0,
 }: MyTicketsProps) {
-  const { selectedRequester } = useRequester();
-
   const [tickets, setTickets] = useState<MyTicket[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,18 +38,10 @@ export default function MyTickets({
         try {
           const result = await getMyTickets(requesterId);
 
-          console.log("COMPONENT RECEIVED FROM getMyTickets", {
-            requesterId,
-            count: result.length,
-            ticketNumbers: result.map((ticket) => ticket.ticketNumber),
-          });
-
           if (!cancelled) {
             setTickets(result);
           }
-        } catch (error) {
-          console.error("FAILED TO LOAD MY TICKETS", error);
-
+        } catch {
           if (!cancelled) {
             setError("Unable to load your tickets.");
           }
@@ -61,19 +52,12 @@ export default function MyTickets({
         }
       }
 
-  const requesterId = selectedRequester?.id;
-
-  if (requesterId == null) {
-    setTickets([]);
-    return;
-  }
-
-  loadTickets(requesterId);
+  loadTickets(requester.id);
 
   return () => {
     cancelled = true;
   };
-}, [selectedRequester?.id, refreshKey]);
+}, [requester.id, refreshKey]);
 
 
   const categories = useMemo(
@@ -210,29 +194,13 @@ export default function MyTickets({
     }
   }
 
-  if (!selectedRequester) {
-    return null;
-  }
-  console.log("MY TICKETS RENDER", {
-    requesterId: selectedRequester.id,
-    tickets: tickets.map((ticket) => ticket.ticketNumber),
-    filteredTickets: filteredTickets.map((ticket) => ticket.ticketNumber),
-    sortedTickets: sortedTickets.map((ticket) => ticket.ticketNumber),
-    ticketNumberFilter,
-    categoryFilter,
-    priorityFilter,
-    statusFilter,
-  });
-
-
-
   return (
     <section>
       <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
           <h2 className="h4 mb-1">My Tickets</h2>
           <p className="text-muted mb-0">
-            Tickets submitted by {selectedRequester.fullName}
+            Tickets submitted by {requester.fullName}
           </p>
         </div>
       </div>
