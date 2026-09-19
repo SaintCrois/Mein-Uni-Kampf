@@ -5,12 +5,22 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { requireAuthenticatedOrLegacyRequester } from "../middleware/requester.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOAD_DIR = path.resolve(__dirname, "../../uploads");
 
 const router = Router();
+router.use(requireAuthenticatedOrLegacyRequester);
+
+function canAccessTicket(req: Express.Request, requesterId: number, allowAdmin: boolean) {
+  return req.user!.role !== "REQUESTER" && (allowAdmin || req.user!.role === "IT_STAFF") ||
+    (req.user!.role === "REQUESTER" && requesterId === req.user!.id);
+}
+
+
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -72,7 +82,7 @@ router.post(
   async (req, res) => {
     try {
       const ticketId = Number(req.params.ticketId);
-      const requesterId = Number(req.header("X-Requester-Id"));
+      const requesterId = req.user!.id;
 
       if (!Number.isInteger(ticketId) || !Number.isInteger(requesterId)) {
         return res.status(400).json({
@@ -100,7 +110,7 @@ router.post(
         });
       }
 
-      if (ticket.requesterId !== requesterId) {
+      if (!canAccessTicket(req, ticket.requesterId, false)) {
         return res.status(403).json({
           error: "Access denied",
         });
@@ -174,7 +184,7 @@ router.get(
     try {
       const ticketId = Number(req.params.ticketId);
       const attachmentId = Number(req.params.attachmentId);
-      const requesterId = Number(req.header("X-Requester-Id"));
+      const requesterId = req.user!.id;
 
       if (
         !Number.isInteger(ticketId) ||
@@ -198,7 +208,7 @@ router.get(
         });
       }
 
-      if (ticket.requesterId !== requesterId) {
+      if (!canAccessTicket(req, ticket.requesterId, true)) {
         return res.status(403).json({
           error: "Access denied",
         });
@@ -255,7 +265,7 @@ router.delete(
     try {
       const ticketId = Number(req.params.ticketId);
       const attachmentId = Number(req.params.attachmentId);
-      const requesterId = Number(req.header("X-Requester-Id"));
+      const requesterId = req.user!.id;
 
       if (
         !Number.isInteger(ticketId) ||
@@ -287,7 +297,7 @@ router.delete(
         });
       }
 
-      if (ticket.requesterId !== requesterId) {
+      if (!canAccessTicket(req, ticket.requesterId, false)) {
         return res.status(403).json({
           error: "Access denied",
         });

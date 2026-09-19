@@ -7,8 +7,8 @@ describe("Attachment lifecycle", () => {
   const prisma = getPrisma();
 
   async function createTestTicket() {
-    const requester = await prisma.devRequester.findFirstOrThrow({
-      where: { isActive: true },
+    const requester = await prisma.user.findFirstOrThrow({
+      where: { isActive: true, role: "REQUESTER" },
       orderBy: { id: "asc" },
     });
 
@@ -78,9 +78,10 @@ describe("Attachment lifecycle", () => {
   it("does not allow another requester to download an attachment", async () => {
     const { requester, ticket } = await createTestTicket();
 
-    const otherRequester = await prisma.devRequester.findFirstOrThrow({
+    const otherRequester = await prisma.user.findFirstOrThrow({
       where: {
         isActive: true,
+        role: "REQUESTER",
         id: { not: requester.id },
       },
       orderBy: { id: "asc" },

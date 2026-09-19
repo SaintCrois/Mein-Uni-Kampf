@@ -29,14 +29,29 @@ model Status {
   tickets   Ticket[]
 }
 
-model DevRequester {
-  id        Int      @id @default(autoincrement())
-  fullName  String
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tickets   Ticket[]
+enum Role {
+  REQUESTER
+  IT_STAFF
+  ADMINISTRATOR
+}
+
+model User {
+  id                 Int             @id @default(autoincrement())
+  email              String          @unique
+  passwordHash       String
+  name               String
+  role               Role            @default(REQUESTER)
+  isActive           Boolean         @default(true)
+  mustChangePassword Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  submittedTickets   Ticket[]        @relation("TicketRequester")
+  assignedTickets    Ticket[]        @relation("TicketOwner")
+  publicComments     PublicComment[]
+  internalNotes      InternalNote[]
+
+  @@index([email])
+  @@index([role, isActive])
 }
 
 model RelatedSystem {
@@ -47,29 +62,34 @@ model RelatedSystem {
 }
 
 model Ticket {
-  id                  Int           @id @default(autoincrement())
-  ticketNumber        String        @unique
-  requesterId         Int
-  categoryId          Int
-  relatedSystemId     Int
-  summary             String        @db.VarChar(150)
-  description         String        @db.VarChar(2000)
-  requestedPriorityId Int
-  itPriorityId        Int?
-  currentStatusId     Int
-  ownerId             Int?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  requester           DevRequester  @relation(fields: [requesterId], references: [id], onDelete: Restrict)
-  category            Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  relatedSystem       RelatedSystem @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)
-  requestedPriority   Priority      @relation("RequestedPriority", fields: [requestedPriorityId], references: [id], onDelete: Restrict)
-  itPriority          Priority?     @relation("ItPriority", fields: [itPriorityId], references: [id], onDelete: Restrict)
-  currentStatus       Status        @relation(fields: [currentStatusId], references: [id], onDelete: Restrict)
-  attachments         Attachment[]
+  id                         Int             @id @default(autoincrement())
+  ticketNumber               String          @unique
+  requesterId                Int
+  categoryId                 Int
+  relatedSystemId            Int
+  summary                    String          @db.VarChar(150)
+  description                String          @db.VarChar(2000)
+  requestedPriorityId        Int
+  itPriorityId               Int?
+  currentStatusId            Int
+  ownerId                    Int?
+  requesterResolvedIndicator Boolean         @default(false)
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+  requester                  User            @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  owner                      User?           @relation("TicketOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  category                   Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  relatedSystem              RelatedSystem   @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)
+  requestedPriority          Priority        @relation("RequestedPriority", fields: [requestedPriorityId], references: [id], onDelete: Restrict)
+  itPriority                 Priority?       @relation("ItPriority", fields: [itPriorityId], references: [id], onDelete: Restrict)
+  currentStatus              Status          @relation(fields: [currentStatusId], references: [id], onDelete: Restrict)
+  attachments                Attachment[]
+  publicComments             PublicComment[]
+  internalNotes              InternalNote[]
 
   @@index([ticketNumber])
   @@index([requesterId])
+  @@index([ownerId])
   @@index([categoryId])
   @@index([requestedPriorityId])
   @@index([currentStatusId])
@@ -96,4 +116,30 @@ model Attachment {
 
   @@index([ticketId])
   @@index([status])
+}
+
+model PublicComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  content   String   @db.VarChar(2000)
+  createdAt DateTime @default(now())
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId])
+  @@index([authorId])
+}
+
+model InternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  content   String   @db.VarChar(2000)
+  createdAt DateTime @default(now())
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId])
+  @@index([authorId])
 }
