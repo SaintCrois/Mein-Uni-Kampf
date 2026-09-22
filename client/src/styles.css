@@ -5,13 +5,30 @@
   --zen-background: #F5F7F6;
   --zen-text: #17352A;
   --zen-error: #8B1E1E;
+  --zen-readonly: #F3F6F4;
+  --zen-readonly-text: #496157;
 }
+
+html { overflow-x: hidden; }
 
 body {
   margin: 0;
   background: var(--zen-background);
   color: var(--zen-text);
+  overflow-x: hidden;
 }
+
+.app-shell { max-width: 1320px; }
+
+.app-header { background: var(--zen-primary); color: #fff; }
+.app-header__identity, .app-header__actions { min-width: 0; }
+.app-header__identity { overflow-wrap: anywhere; }
+.app-header .btn-light { color: #17352A; }
+
+.badge { white-space: normal; line-height: 1.2; }
+.badge-role-requester { background: #5C636A; color: #fff; }
+.badge-role-staff { background: #0D6EFD; color: #fff; }
+.badge-role-admin { background: #212529; color: #fff; }
 
 .btn-primary {
   --bs-btn-bg: var(--zen-primary);
@@ -37,9 +54,23 @@ body {
 }
 
 .form-control:focus,
-.form-select:focus {
+.form-select:focus,
+.form-check-input:focus {
   border-color: var(--zen-secondary);
-  box-shadow: 0 0 0 0.2rem rgba(11, 122, 70, 0.15);
+  box-shadow: 0 0 0 0.25rem rgba(11, 122, 70, 0.32);
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid #F4B942;
+  outline-offset: 2px;
+}
+
+.form-control[readonly], .form-select[readonly], .zen-readonly {
+  background-color: var(--zen-readonly);
+  border-color: #C9D8D0;
+  color: var(--zen-readonly-text);
 }
 
 .is-invalid {
@@ -48,6 +79,39 @@ body {
 
 .invalid-feedback {
   color: var(--zen-error);
+  font-weight: 600;
+}
+
+.feedback-inline { overflow-wrap: anywhere; }
+.zen-break-anywhere { overflow-wrap: anywhere; }
+
+.modal-backdrop-static {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: rgba(23, 53, 42, 0.5);
+}
+
+.modal.d-block { z-index: 1050; overflow-y: auto; }
+.modal-dialog { margin: 1.75rem auto; }
+
+@media (max-width: 767.98px) {
+  .app-shell { padding-left: .75rem !important; padding-right: .75rem !important; }
+  .app-header { padding: 1rem !important; }
+  .app-header__actions .btn { width: 100%; }
+  .card-body { padding: 1rem; }
+  .modal-dialog { width: calc(100% - 1.5rem); margin: .75rem auto; }
+  .modal-footer { flex-direction: column-reverse; align-items: stretch; }
+  .modal-footer .btn { width: 100%; }
+  .table-responsive { font-size: .875rem; }
+  .table-responsive > .table { min-width: 640px; }
+}
+
+@media (max-width: 575.98px) {
+  .staff-detail-toolbar, .staff-detail-toolbar > div,
+  .staff-operation-controls, .staff-operation-controls > div { align-items: stretch !important; }
+  .staff-operation-controls select, .staff-operation-controls button { width: 100% !important; min-width: 0 !important; }
+  .communication-header { align-items: flex-start !important; flex-direction: column; gap: .25rem; }
 }
 
 .priority-low {

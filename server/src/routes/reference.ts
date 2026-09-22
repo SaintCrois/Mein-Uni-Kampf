@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { getPrisma } from "../prisma.js";
+import { requireAuthUnlessLegacyTest } from "../middleware/requester.js";
 
 const router = Router();
-router.get("/priorities", async (_req, res) => {
+router.get("/priorities", requireAuthUnlessLegacyTest, async (_req, res) => {
   try {
     const prisma = getPrisma();
 
@@ -26,7 +27,7 @@ router.get("/priorities", async (_req, res) => {
     });
   }
 });
-router.get("/related-systems", async (_req, res) => {
+router.get("/related-systems", requireAuthUnlessLegacyTest, async (_req, res) => {
   try {
     const prisma = getPrisma();
 

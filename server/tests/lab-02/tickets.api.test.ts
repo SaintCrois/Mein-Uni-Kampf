@@ -8,12 +8,12 @@ describe("POST /api/tickets", () => {
   const prisma = getPrisma();
 
   async function getTestData() {
-    const requester = await prisma.devRequester.findFirstOrThrow({
-      where: { isActive: true },
+    const requester = await prisma.user.findFirstOrThrow({
+      where: { isActive: true, role: "REQUESTER" },
       orderBy: { id: "asc" },
     });
-    const inactiveRequester = await prisma.devRequester.findFirstOrThrow({
-      where: { isActive: false },
+    const inactiveRequester = await prisma.user.findFirstOrThrow({
+      where: { isActive: false, role: "REQUESTER" },
     });
     const category = await prisma.category.findFirstOrThrow({
       where: { isActive: true },
@@ -159,9 +159,10 @@ describe("POST /api/tickets", () => {
       priority,
     } = await getTestData();
 
-    const otherRequester = await prisma.devRequester.findFirstOrThrow({
+    const otherRequester = await prisma.user.findFirstOrThrow({
       where: {
         isActive: true,
+        role: "REQUESTER",
         id: { not: requester.id },
       },
     });

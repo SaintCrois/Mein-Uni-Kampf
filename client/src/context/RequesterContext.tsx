@@ -1,4 +1,4 @@
-import {createContext, useContext, useState, type ReactNode} from "react";
+import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 
 export type Requester = {
   id: number;
@@ -38,7 +38,7 @@ export function RequesterProvider({
       }
     });
 
-  function setSelectedRequester(requester: Requester | null) {
+  const setSelectedRequester = useCallback((requester: Requester | null) => {
     setSelectedRequesterState(requester);
 
     if (requester) {
@@ -46,11 +46,11 @@ export function RequesterProvider({
     } else {
       localStorage.removeItem("requester");
     }
-  }
+  }, []);
 
-  function clearRequester() {
+  const clearRequester = useCallback(() => {
     setSelectedRequester(null);
-  }
+  }, [setSelectedRequester]);
 
   return (
     <RequesterContext.Provider

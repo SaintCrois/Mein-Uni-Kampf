@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { getPrisma } from "../prisma.js";
 import crypto from "node:crypto";
-import { requireRequester } from "../middleware/requester.js";
+import { requireRequester, requireAuthenticatedOrLegacyRequester } from "../middleware/requester.js";
+import { requireRole } from "../middleware/auth.js";
 
 
 const router = Router();
-router.use(requireRequester);
 
 const allowedPriorities = new Set([
   "Low",
@@ -14,44 +14,81 @@ const allowedPriorities = new Set([
   "Urgent",
 ]);
 
-router.get("/", async (req, res) => {
+router.get("/", requireRequester, async (req, res) => {
   try {
     const prisma = getPrisma();
 
-    const tickets = await prisma.ticket.findMany({
-      where: {
-        requesterId: req.requesterId,
-      },
-      include: {
-        category: true,
-        requestedPriority: true,
-        currentStatus: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const rawPage = Number(req.query.page);
+    const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+
+    const rawPageSize = Number(req.query.pageSize);
+    const pageSize =
+      Number.isInteger(rawPageSize) && rawPageSize > 0
+        ? Math.min(rawPageSize, 50)
+        : 10;
+
+    const where: any = { requesterId: req.requesterId };
+
+    const { search, status, priority, categoryId } = req.query;
+
+    if (typeof search === "string" && search.trim()) {
+      const keyword = search.trim();
+      where.OR = [
+        { ticketNumber: { contains: keyword, mode: "insensitive" } },
+        { summary: { contains: keyword, mode: "insensitive" } },
+      ];
+    }
+
+    if (typeof status === "string" && status.trim()) {
+      where.currentStatus = { name: { equals: status.trim(), mode: "insensitive" } };
+    }
+
+    if (typeof priority === "string" && priority.trim()) {
+      where.requestedPriority = { name: { equals: priority.trim(), mode: "insensitive" } };
+    }
+
+    if (typeof categoryId === "string" && categoryId.trim()) {
+      const id = Number(categoryId);
+      if (Number.isInteger(id)) where.categoryId = id;
+    }
+
+    const { sortBy = "createdAt", sortOrder = "desc" } = req.query;
+    const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
+    const orderBy: any =
+      sortBy === "ticketNumber"
+        ? { ticketNumber: safeSortOrder }
+        : { createdAt: safeSortOrder };
+
+    const [tickets, totalItems] = await Promise.all([
+      prisma.ticket.findMany({
+        where,
+        include: {
+          category: true,
+          requestedPriority: true,
+          currentStatus: true,
+        },
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.ticket.count({ where }),
+    ]);
 
     return res.status(200).json({
       data: tickets.map((ticket) => ({
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
         summary: ticket.summary,
-        category: {
-          id: ticket.category.id,
-          name: ticket.category.name,
-        },
-        requestedPriority: {
-          id: ticket.requestedPriority.id,
-          name: ticket.requestedPriority.name,
-        },
-        currentStatus: {
-          id: ticket.currentStatus.id,
-          name: ticket.currentStatus.name,
-        },
+        category: { id: ticket.category.id, name: ticket.category.name },
+        requestedPriority: { id: ticket.requestedPriority.id, name: ticket.requestedPriority.name },
+        currentStatus: { id: ticket.currentStatus.id, name: ticket.currentStatus.name },
         status: ticket.currentStatus.name,
         createdAt: ticket.createdAt,
       })),
+      page,
+      pageSize,
+      totalItems,
+      totalPages: Math.ceil(totalItems / pageSize),
     });
   } catch (_error) {
     return res.status(500).json({
@@ -61,17 +98,23 @@ router.get("/", async (req, res) => {
 });
 
 
-router.post("/", async (req, res) => {
+router.post("/", requireRequester, async (req, res) => {
 
   try {
     const {
-      requesterId,
       categoryId,
       relatedSystemId,
       summary,
       description,
       requestedPriorityId,
     } = req.body;
+
+    // The requester is always derived from the verified session, never the body.
+    const requesterId = req.user!.id;
+
+    if (req.isLegacyRequester && req.body.requesterId !== undefined && req.body.requesterId !== requesterId) {
+      return res.status(403).json({ error: "Requester does not match the authenticated requester" });
+    }
 
     if (
       !Number.isInteger(requesterId) ||
@@ -81,12 +124,6 @@ router.post("/", async (req, res) => {
     ) {
       return res.status(400).json({
         error: "Invalid reference ID",
-      });
-    }
-
-    if (requesterId !== req.requesterId) {
-      return res.status(403).json({
-        error: "Requester does not match the authenticated requester",
       });
     }
 
@@ -113,7 +150,7 @@ router.post("/", async (req, res) => {
 
     const prisma = getPrisma();
 
-    const requester = await prisma.devRequester.findUnique({
+    const requester = await prisma.user.findUnique({
       where: { id: requesterId },
     });
 
@@ -184,7 +221,7 @@ router.post("/", async (req, res) => {
           description: description.trim(),
           requestedPriorityId,
           currentStatusId: newStatus.id,
-          itPriorityId: null,
+          itPriorityId: requestedPriorityId,
           ownerId: null,
         },
       });
@@ -221,7 +258,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuthenticatedOrLegacyRequester, async (req, res) => {
   try {
     const ticketId = Number(req.params.id);
 
@@ -239,7 +276,24 @@ router.get("/:id", async (req, res) => {
         category: true,
         relatedSystem: true,
         requestedPriority: true,
+        itPriority: true,
         currentStatus: true,
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
         attachments: {
           orderBy: {
             uploadedAt: "asc",
@@ -254,7 +308,7 @@ router.get("/:id", async (req, res) => {
       });
     }
 
-    if (ticket.requesterId !== req.requesterId) {
+    if (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id) {
       return res.status(403).json({
         error: "Access denied",
       });
@@ -277,10 +331,33 @@ router.get("/:id", async (req, res) => {
         id: ticket.requestedPriority.id,
         name: ticket.requestedPriority.name,
       },
+      itPriority: ticket.itPriority
+        ? {
+            id: ticket.itPriority.id,
+            name: ticket.itPriority.name,
+          }
+        : null,
       currentStatus: {
         id: ticket.currentStatus.id,
         name: ticket.currentStatus.name,
       },
+      owner: ticket.owner
+        ? {
+            id: ticket.owner.id,
+            name: ticket.owner.name,
+            email: ticket.owner.email,
+            role: ticket.owner.role,
+          }
+        : null,
+      requester: ticket.requester
+        ? {
+            id: ticket.requester.id,
+            name: ticket.requester.name,
+            email: ticket.requester.email,
+            role: ticket.requester.role,
+          }
+        : null,
+      requesterResolvedIndicator: ticket.requesterResolvedIndicator,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
       attachments: ticket.attachments.map((attachment) => ({
@@ -299,6 +376,211 @@ router.get("/:id", async (req, res) => {
       error: "Failed to fetch ticket",
     });
   }
+});
+
+// Internal Notes (Strictly IT_STAFF and ADMINISTRATOR)
+router.get("/:id/notes", requireAuthenticatedOrLegacyRequester, requireRole("IT_STAFF", "ADMINISTRATOR"), async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId)) {
+      return res.status(400).json({ error: "Invalid ticket ID" });
+    }
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        internalNotes: {
+          include: {
+            author: {
+              select: { id: true, name: true, role: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    return res.status(200).json({ data: ticket.internalNotes });
+  } catch (_error) {
+    return res.status(500).json({ error: "Failed to fetch internal notes" });
+  }
+});
+
+router.post("/:id/notes", requireAuthenticatedOrLegacyRequester, requireRole("IT_STAFF", "ADMINISTRATOR"), async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId)) {
+      return res.status(400).json({ error: "Invalid ticket ID" });
+    }
+
+    const { content } = req.body ?? {};
+    if (
+      typeof content !== "string" ||
+      content.trim().length === 0 ||
+      content.trim().length > 2000
+    ) {
+      return res.status(400).json({
+        error: "Content is required and must be 2000 characters or fewer",
+      });
+    }
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    const note = await prisma.internalNote.create({
+      data: {
+        ticketId,
+        authorId: req.user!.id,
+        content: content.trim(),
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true },
+        },
+      },
+    });
+
+    return res.status(201).json({
+      message: "Internal note created",
+      data: note,
+    });
+  } catch (_error) {
+    return res.status(500).json({ error: "Failed to create internal note" });
+  }
+});
+
+// Public Comments (Requester, IT Staff, and Admin)
+router.get("/:id/comments", requireAuthenticatedOrLegacyRequester, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId)) {
+      return res.status(400).json({ error: "Invalid ticket ID" });
+    }
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        publicComments: {
+          include: {
+            author: {
+              select: { id: true, name: true, role: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    if (
+      req.user!.role === "REQUESTER" &&
+      ticket.requesterId !== req.user!.id
+    ) {
+      return res.status(403).json({
+        error: "Access denied",
+        code: "ACCESS_DENIED",
+      });
+    }
+
+    return res.status(200).json(ticket.publicComments);
+  } catch (_error) {
+    return res.status(500).json({ error: "Failed to fetch comments" });
+  }
+});
+
+router.post("/:id/comments", requireAuthenticatedOrLegacyRequester, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId)) {
+      return res.status(400).json({ error: "Invalid ticket ID" });
+    }
+
+    const { content } = req.body ?? {};
+    if (
+      typeof content !== "string" ||
+      content.trim().length === 0 ||
+      content.trim().length > 2000
+    ) {
+      return res.status(400).json({
+        error: "Content is required and must be 2000 characters or fewer",
+      });
+    }
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    if (
+      req.user!.role === "REQUESTER" &&
+      ticket.requesterId !== req.user!.id
+    ) {
+      return res.status(403).json({
+        error: "Access denied",
+        code: "ACCESS_DENIED",
+      });
+    }
+
+    const authorId = req.user!.id;
+    const comment = await prisma.publicComment.create({
+      data: {
+        ticketId,
+        authorId,
+        content: content.trim(),
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true },
+        },
+      },
+    });
+
+    return res.status(201).json({
+      message: "Public comment created",
+      data: comment,
+    });
+  } catch (_error) {
+    return res.status(500).json({ error: "Failed to post comment" });
+  }
+});
+
+router.post("/:id/resolve-indicator", requireRequester, async (req, res) => {
+  const ticketId = Number(req.params.id);
+  if (!Number.isInteger(ticketId) || typeof req.body?.resolved !== "boolean") {
+    return res.status(400).json({ error: "Invalid resolution indicator", code: "INVALID_INPUT", details: [] });
+  }
+
+  const prisma = getPrisma();
+  const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+  if (!ticket) return res.status(404).json({ error: "Ticket not found", code: "NOT_FOUND", details: [] });
+  if (ticket.requesterId !== req.user!.id) {
+    return res.status(403).json({ error: "Access denied", code: "ACCESS_DENIED", details: [] });
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id: ticketId },
+    data: { requesterResolvedIndicator: req.body.resolved },
+  });
+  return res.status(200).json({ data: { id: updated.id, requesterResolvedIndicator: updated.requesterResolvedIndicator } });
 });
 
 export default router;
