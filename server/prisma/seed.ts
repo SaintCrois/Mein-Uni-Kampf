@@ -57,8 +57,10 @@ async function main() {
     { name: "Closed", isDefault: false },
     { name: "Reopened", isDefault: false },
     { name: "Cancelled", isDefault: false },
-    { name: "Pending", isDefault: false },
   ];
+
+  await prisma.status.deleteMany({ where: { name: "Pending" } });
+
   for (const status of statuses) {
     await prisma.status.upsert({
       where: { name: status.name },
@@ -334,7 +336,7 @@ async function main() {
     const category = categoryMap.get(t.categoryName)!;
     const system = systemMap.get(t.systemName)!;
     const requestedPriority = priorityMap.get(t.requestedPriorityName)!;
-    const itPriority = t.itPriorityName ? priorityMap.get(t.itPriorityName) : null;
+    const itPriority = (t.itPriorityName ? priorityMap.get(t.itPriorityName) : null) ?? requestedPriority;
     const status = statusMap.get(t.statusName)!;
     const owner = t.ownerEmail ? userMap.get(t.ownerEmail) : null;
 
@@ -345,7 +347,7 @@ async function main() {
       summary: t.summary,
       description: t.description,
       requestedPriorityId: requestedPriority.id,
-      itPriorityId: itPriority ? itPriority.id : null,
+      itPriorityId: itPriority.id,
       currentStatusId: status.id,
       ownerId: owner ? owner.id : null,
       requesterResolvedIndicator: t.requesterResolvedIndicator,

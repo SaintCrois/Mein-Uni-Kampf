@@ -18,40 +18,77 @@ router.get("/", requireRequester, async (req, res) => {
   try {
     const prisma = getPrisma();
 
-    const tickets = await prisma.ticket.findMany({
-      where: {
-        requesterId: req.requesterId,
-      },
-      include: {
-        category: true,
-        requestedPriority: true,
-        currentStatus: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const rawPage = Number(req.query.page);
+    const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+
+    const rawPageSize = Number(req.query.pageSize);
+    const pageSize =
+      Number.isInteger(rawPageSize) && rawPageSize > 0
+        ? Math.min(rawPageSize, 50)
+        : 10;
+
+    const where: any = { requesterId: req.requesterId };
+
+    const { search, status, priority, categoryId } = req.query;
+
+    if (typeof search === "string" && search.trim()) {
+      const keyword = search.trim();
+      where.OR = [
+        { ticketNumber: { contains: keyword, mode: "insensitive" } },
+        { summary: { contains: keyword, mode: "insensitive" } },
+      ];
+    }
+
+    if (typeof status === "string" && status.trim()) {
+      where.currentStatus = { name: { equals: status.trim(), mode: "insensitive" } };
+    }
+
+    if (typeof priority === "string" && priority.trim()) {
+      where.requestedPriority = { name: { equals: priority.trim(), mode: "insensitive" } };
+    }
+
+    if (typeof categoryId === "string" && categoryId.trim()) {
+      const id = Number(categoryId);
+      if (Number.isInteger(id)) where.categoryId = id;
+    }
+
+    const { sortBy = "createdAt", sortOrder = "desc" } = req.query;
+    const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
+    const orderBy: any =
+      sortBy === "ticketNumber"
+        ? { ticketNumber: safeSortOrder }
+        : { createdAt: safeSortOrder };
+
+    const [tickets, totalItems] = await Promise.all([
+      prisma.ticket.findMany({
+        where,
+        include: {
+          category: true,
+          requestedPriority: true,
+          currentStatus: true,
+        },
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.ticket.count({ where }),
+    ]);
 
     return res.status(200).json({
       data: tickets.map((ticket) => ({
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
         summary: ticket.summary,
-        category: {
-          id: ticket.category.id,
-          name: ticket.category.name,
-        },
-        requestedPriority: {
-          id: ticket.requestedPriority.id,
-          name: ticket.requestedPriority.name,
-        },
-        currentStatus: {
-          id: ticket.currentStatus.id,
-          name: ticket.currentStatus.name,
-        },
+        category: { id: ticket.category.id, name: ticket.category.name },
+        requestedPriority: { id: ticket.requestedPriority.id, name: ticket.requestedPriority.name },
+        currentStatus: { id: ticket.currentStatus.id, name: ticket.currentStatus.name },
         status: ticket.currentStatus.name,
         createdAt: ticket.createdAt,
       })),
+      page,
+      pageSize,
+      totalItems,
+      totalPages: Math.ceil(totalItems / pageSize),
     });
   } catch (_error) {
     return res.status(500).json({
@@ -184,7 +221,7 @@ router.post("/", requireRequester, async (req, res) => {
           description: description.trim(),
           requestedPriorityId,
           currentStatusId: newStatus.id,
-          itPriorityId: null,
+          itPriorityId: requestedPriorityId,
           ownerId: null,
         },
       });
@@ -460,7 +497,7 @@ router.get("/:id/comments", requireAuthenticatedOrLegacyRequester, async (req, r
       });
     }
 
-    return res.status(200).json({ data: ticket.publicComments });
+    return res.status(200).json(ticket.publicComments);
   } catch (_error) {
     return res.status(500).json({ error: "Failed to fetch comments" });
   }

@@ -24,6 +24,7 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
   const [status, setStatus] = useState("");
   const [categories, setCategories] = useState<ReferenceItem[]>([]);
   const [categoryId, setCategoryId] = useState("");
+  const [requestedPriority, setRequestedPriority] = useState("");
   const [itPriority, setItPriority] = useState("");
   const [ownership, setOwnership] = useState<"all" | "unassigned" | "mine">("all");
 
@@ -38,7 +39,7 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
   const [totalItems, setTotalItems] = useState(0);
 
   const hasActiveFilters = Boolean(
-    search.trim() || status || categoryId || itPriority || ownership !== "all",
+    search.trim() || status || categoryId || requestedPriority || itPriority || ownership !== "all",
   );
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
         search: search.trim() || undefined,
         status: status || undefined,
         categoryId: categoryId ? Number(categoryId) : undefined,
+        requestedPriority: requestedPriority || undefined,
         itPriority: itPriority || undefined,
         ownership,
         sortBy,
@@ -94,7 +96,7 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
 
   useEffect(() => {
     loadTickets();
-  }, [page, status, categoryId, itPriority, ownership, sortBy, sortOrder]);
+  }, [page, status, categoryId, requestedPriority, itPriority, ownership, sortBy, sortOrder]);
 
   function handleSearch(event: React.FormEvent) {
     event.preventDefault();
@@ -106,6 +108,7 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
     setSearch("");
     setStatus("");
     setCategoryId("");
+    setRequestedPriority("");
     setItPriority("");
     setOwnership("all");
     setPage(1);
@@ -266,6 +269,27 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
                   {category.name}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="col-6 col-md-2">
+            <label htmlFor="staff-ticket-requested-priority" className="form-label fw-semibold">
+              Req. Priority
+            </label>
+            <select
+              id="staff-ticket-requested-priority"
+              className="form-select"
+              value={requestedPriority}
+              onChange={(event) => {
+                setRequestedPriority(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All requested</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
             </select>
           </div>
 

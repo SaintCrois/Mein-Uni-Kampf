@@ -609,6 +609,14 @@ async function handleUpdateStatus(req: Request, res: Response) {
       });
     }
 
+    if (ticket.currentStatus.name === "New" && nextStatus.name === "Open") {
+      return res.status(400).json({
+        error: "Ticket in New status must be claimed or assigned to advance to Open",
+        code: "INVALID_STATUS_TRANSITION",
+        details: []
+      });
+    }
+
     const updated = await prisma.ticket.update({
       where: { id: ticketId },
       data: {

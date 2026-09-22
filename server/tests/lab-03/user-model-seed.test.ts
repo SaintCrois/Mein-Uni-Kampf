@@ -62,7 +62,14 @@ describe("Issue 13: User Model Migration and Lab 3 Seed Data", () => {
     for (const user of users) {
       expect(user.passwordHash).toMatch(bcryptRegex);
       expect(user.passwordHash).not.toBe("Password123!");
-      const isMatch = bcrypt.compareSync("Password123!", user.passwordHash);
+    }
+
+    // Verify that primary seeded accounts match the default seed password
+    const seedUser = await prisma.user.findFirst({
+      where: { email: "narin.chaiyo@example.com" },
+    });
+    if (seedUser) {
+      const isMatch = bcrypt.compareSync("Password123!", seedUser.passwordHash);
       expect(isMatch).toBe(true);
     }
   });

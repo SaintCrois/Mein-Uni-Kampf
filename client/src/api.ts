@@ -40,12 +40,22 @@ export interface Requester {
   isActive: boolean;
 }
 
+export async function getActiveRequesters(): Promise<Requester[]> {
+  const response = await fetch(`${API_URL}/api/requesters/active`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch active requesters.");
+  }
+
+  const data = await response.json();
+  return data.data ?? data;
+}
+
 export interface CreateTicketAttachment {
   file: File;
 }
 
 export interface CreateTicketInput {
-  requesterId: number;
   categoryId: number;
   relatedSystemId: number;
   summary: string;
@@ -67,19 +77,6 @@ export interface CreateTicketResponse {
   requestedPriority?: string;
   status?: string;
   currentStatus?: string;
-}
-
-
-
-export async function getActiveRequesters(): Promise<Requester[]> {
-  const response = await fetch(`${API_URL}/api/requesters/active`);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch active requesters.");
-  }
-
-  const data = await response.json();
-  return data.data ?? data;
 }
 
 export async function createTicket(
@@ -136,7 +133,9 @@ export interface ReferenceItem {
 }
 
 export async function getCategories(): Promise<ReferenceItem[]> {
-  const response = await fetch(`${API_URL}/api/categories`);
+  const response = await fetch(`${API_URL}/api/categories`, {
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch categories.");
@@ -146,7 +145,9 @@ export async function getCategories(): Promise<ReferenceItem[]> {
 }
 
 export async function getRelatedSystems(): Promise<ReferenceItem[]> {
-  const response = await fetch(`${API_URL}/api/related-systems`);
+  const response = await fetch(`${API_URL}/api/related-systems`, {
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch related systems.");
@@ -156,7 +157,9 @@ export async function getRelatedSystems(): Promise<ReferenceItem[]> {
 }
 
 export async function getPriorities(): Promise<ReferenceItem[]> {
-  const response = await fetch(`${API_URL}/api/priorities`);
+  const response = await fetch(`${API_URL}/api/priorities`, {
+    credentials: "include",
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch priorities.");
@@ -181,14 +184,44 @@ export interface MyTicket {
     id: number;
     name: string;
   };
+  owner?: {
+    id: number;
+    name: string;
+  } | null;
   createdAt: string;
 }
 
+export interface MyTicketsResponse {
+  data: MyTicket[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
 
 export async function getMyTickets(
-  _requesterId: number,
-): Promise<MyTicket[]> {
-  const response = await fetch(`${API_URL}/api/tickets`, {
+  params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    priority?: string;
+    categoryId?: number;
+    sortBy?: string;
+    sortOrder?: string;
+  }
+): Promise<MyTicketsResponse> {
+  const urlParams = new URLSearchParams();
+  if (params?.page) urlParams.set("page", String(params.page));
+  if (params?.pageSize) urlParams.set("pageSize", String(params.pageSize));
+  if (params?.search) urlParams.set("search", params.search);
+  if (params?.status) urlParams.set("status", params.status);
+  if (params?.priority) urlParams.set("priority", params.priority);
+  if (params?.categoryId) urlParams.set("categoryId", String(params.categoryId));
+  if (params?.sortBy) urlParams.set("sortBy", params.sortBy);
+  if (params?.sortOrder) urlParams.set("sortOrder", params.sortOrder);
+
+  const response = await fetch(`${API_URL}/api/tickets?${urlParams.toString()}`, {
     credentials: "include",
   });
 
@@ -202,11 +235,33 @@ export async function getMyTickets(
 
   const data = await response.json();
 
-  const tickets: MyTicket[] = data.data ?? data;
-
-  return tickets;
+  return {
+    data: data.data ?? data.items ?? [],
+    page: data.page ?? 1,
+    pageSize: data.pageSize ?? 10,
+    totalItems: data.totalItems ?? 0,
+    totalPages: data.totalPages ?? 1,
+  };
 }
 
+
+export async function markResolvedIndicator(
+  ticketId: number,
+  resolved: boolean
+): Promise<{ id: number; requesterResolvedIndicator: boolean }> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/resolve-indicator`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resolved }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Failed to update resolved indicator.");
+  }
+  return response.json();
+}
 
 export interface TicketAttachment {
   id: number;
@@ -686,7 +741,7 @@ export async function getPublicComments(
   }
 
   const result = await response.json();
-  return result.data ?? [];
+  return Array.isArray(result) ? result : (result.data ?? []);
 }
 
 export async function createPublicComment(
