@@ -1,4 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import {
+  createPublicComment,
+  getPublicComments,
+  type PublicComment,
+} from "../api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -49,18 +54,22 @@ export default function TicketDetail({
   const [ticket, setTicket] = useState<TicketDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [comments, setComments] = useState<PublicComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentError, setCommentError] = useState("");
+  const [newComment, setNewComment] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const loadTicket = async () => {
     try {
       setLoading(true);
       setError("");
+      setCommentsLoading(true);
+      setCommentError("");
 
-      const response = await fetch(
-        `${API_URL}/api/tickets/${ticketId}`,
-        {
-          credentials: "include",
-        },
-      );
+      const response = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
+        credentials: "include",
+      });
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
@@ -72,6 +81,17 @@ export default function TicketDetail({
 
       const data = await response.json();
       setTicket(data);
+
+      try {
+        setComments(await getPublicComments(ticketId));
+      } catch (err) {
+        setComments([]);
+        setCommentError(
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch public comments.",
+        );
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -80,6 +100,7 @@ export default function TicketDetail({
       );
     } finally {
       setLoading(false);
+      setCommentsLoading(false);
     }
   };
 
@@ -87,6 +108,30 @@ export default function TicketDetail({
   useEffect(() => {
     loadTicket();
   }, [ticketId]);
+
+  async function handlePostComment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const content = newComment.trim();
+
+    if (!content) {
+      setCommentError("Public comment cannot be empty or whitespace-only.");
+      return;
+    }
+
+    try {
+      setCommentSubmitting(true);
+      setCommentError("");
+      const created = await createPublicComment(ticketId, content);
+      setComments((current) => [...current, created]);
+      setNewComment("");
+    } catch (err) {
+      setCommentError(
+        err instanceof Error ? err.message : "Failed to post public comment.",
+      );
+    } finally {
+      setCommentSubmitting(false);
+    }
+  }
 
 
     function getPriorityClass(priority: string) {
@@ -296,6 +341,69 @@ export default function TicketDetail({
                 value={ticket.description}
                 readOnly
             />
+            </div>
+
+            <div className="card border-success mb-4">
+              <div className="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h3 className="h6 mb-0">Public Comments</h3>
+                <small>Visible to requester and staff</small>
+              </div>
+              <div className="card-body">
+                {commentsLoading ? (
+                  <p className="text-muted mb-3">Loading public comments...</p>
+                ) : commentError && comments.length === 0 ? (
+                  <div className="alert alert-danger" role="alert">
+                    {commentError}
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-muted mb-3">No public comments yet.</p>
+                ) : (
+                  <div className="d-flex flex-column gap-2 mb-3">
+                    {comments.map((comment) => (
+                      <article key={comment.id} className="border rounded p-3 bg-light">
+                        <div className="d-flex justify-content-between gap-3 small text-muted mb-1">
+                          <strong className="text-dark">{comment.author.name}</strong>
+                          <time dateTime={comment.createdAt}>
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </time>
+                        </div>
+                        <p className="mb-0" style={{ whiteSpace: "pre-wrap" }}>
+                          {comment.content}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+
+                <form onSubmit={handlePostComment}>
+                  <label htmlFor="public-comment-content" className="form-label fw-semibold">
+                    Add a public comment
+                  </label>
+                  <textarea
+                    id="public-comment-content"
+                    className="form-control mb-2"
+                    rows={4}
+                    maxLength={2000}
+                    value={newComment}
+                    onChange={(event) => setNewComment(event.target.value)}
+                    placeholder="Write a public comment visible to requester and staff..."
+                    aria-label="Public comment content"
+                    disabled={commentSubmitting}
+                  />
+                  {commentError && comments.length > 0 && (
+                    <div className="alert alert-danger py-2" role="alert">
+                      {commentError}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    className="btn btn-success"
+                    disabled={commentSubmitting}
+                  >
+                    {commentSubmitting ? "Posting..." : "Post Public Comment"}
+                  </button>
+                </form>
+              </div>
             </div>
 
             {/* Attachments */}

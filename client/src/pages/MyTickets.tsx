@@ -213,18 +213,6 @@ export default function MyTickets({
   if (!selectedRequester) {
     return null;
   }
-  console.log("MY TICKETS RENDER", {
-    requesterId: selectedRequester.id,
-    tickets: tickets.map((ticket) => ticket.ticketNumber),
-    filteredTickets: filteredTickets.map((ticket) => ticket.ticketNumber),
-    sortedTickets: sortedTickets.map((ticket) => ticket.ticketNumber),
-    ticketNumberFilter,
-    categoryFilter,
-    priorityFilter,
-    statusFilter,
-  });
-
-
 
   return (
     <section>
