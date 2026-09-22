@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { getMyTickets, MyTicket } from "../api";
-import { useRequester } from "../context/RequesterContext";
+import { getMyTickets, MyTicket, getCategories, ReferenceItem } from "../api";
+import { useAuth } from "../context/AuthContext";
 
 type MyTicketsProps = {
   onOpenTicket: (ticketId: number) => void;
@@ -13,14 +13,16 @@ export default function MyTickets({
   onCreateTicket,
   refreshKey = 0,
 }: MyTicketsProps) {
-  const { selectedRequester } = useRequester();
+  const { user } = useAuth();
 
   const [tickets, setTickets] = useState<MyTicket[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [categories, setCategories] = useState<ReferenceItem[]>([]);
+
+  // Server-side filters
   const [ticketNumberFilter, setTicketNumberFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [sortField, setSortField] = useState<"ticketNumber" | "createdAt">(
@@ -28,160 +30,87 @@ export default function MyTickets({
   );
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  // Client-side filter
+  const [categoryFilter, setCategoryFilter] = useState("");
 
-    useEffect(() => {
-      let cancelled = false;
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-      async function loadTickets(requesterId: number) {
-        setLoading(true);
-        setError("");
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
 
-        try {
-          const result = await getMyTickets(requesterId);
+  useEffect(() => {
+    let cancelled = false;
 
-          console.log("COMPONENT RECEIVED FROM getMyTickets", {
-            requesterId,
-            count: result.length,
-            ticketNumbers: result.map((ticket) => ticket.ticketNumber),
-          });
+    async function loadTickets() {
+      if (!user) return;
+      
+      setLoading(true);
+      setError("");
 
-          if (!cancelled) {
-            setTickets(result);
-          }
-        } catch (error) {
-          console.error("FAILED TO LOAD MY TICKETS", error);
+      try {
+        const result = await getMyTickets({
+          page,
+          pageSize,
+          search: ticketNumberFilter.trim() || undefined,
+          status: statusFilter || undefined,
+          priority: priorityFilter || undefined,
+          sortBy: sortField,
+          sortOrder: sortDirection,
+        });
 
-          if (!cancelled) {
-            setError("Unable to load your tickets.");
-          }
-        } finally {
-          if (!cancelled) {
-            setLoading(false);
-          }
+        if (!cancelled) {
+          setTickets(result.data);
+          setTotalItems(result.totalItems);
+          setTotalPages(result.totalPages);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setError("Unable to load your tickets.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
         }
       }
+    }
 
-  const requesterId = selectedRequester?.id;
+    loadTickets();
 
-  if (requesterId == null) {
-    setTickets([]);
-    return;
-  }
-
-  loadTickets(requesterId);
-
-  return () => {
-    cancelled = true;
-  };
-}, [selectedRequester?.id, refreshKey]);
-
-
-  const categories = useMemo(
-    () =>
-      Array.from(
-        new Map(
-          tickets.map((ticket) => [
-            ticket.category.id,
-            ticket.category.name,
-          ]),
-        ).entries(),
-      ),
-    [tickets],
-  );
-
-  const priorities = useMemo(
-    () =>
-      Array.from(
-        new Map(
-          tickets.map((ticket) => [
-            ticket.requestedPriority.id,
-            ticket.requestedPriority.name,
-          ]),
-        ).entries(),
-      ),
-    [tickets],
-  );
-
-  const statuses = useMemo(
-    () =>
-      Array.from(
-        new Map(
-          tickets.map((ticket) => [
-            ticket.currentStatus.id,
-            ticket.currentStatus.name,
-          ]),
-        ).entries(),
-      ),
-    [tickets],
-  );
-
-  const filteredTickets = useMemo(() => {
-    const search = ticketNumberFilter.trim().toLowerCase();
-
-    return tickets.filter((ticket) => {
-      const matchesTicketNumber =
-        !search ||
-        ticket.ticketNumber.toLowerCase().includes(search);
-
-      const matchesCategory =
-        !categoryFilter ||
-        String(ticket.category.id) === categoryFilter;
-
-      const matchesPriority =
-        !priorityFilter ||
-        String(ticket.requestedPriority.id) === priorityFilter;
-
-      const matchesStatus =
-        !statusFilter ||
-        String(ticket.currentStatus.id) === statusFilter;
-
-      return (
-        matchesTicketNumber &&
-        matchesCategory &&
-        matchesPriority &&
-        matchesStatus
-      );
-    });
+    return () => {
+      cancelled = true;
+    };
   }, [
-    tickets,
+    user,
+    refreshKey,
+    page,
+    pageSize,
     ticketNumberFilter,
-    categoryFilter,
-    priorityFilter,
     statusFilter,
+    priorityFilter,
+    sortField,
+    sortDirection,
   ]);
 
-  const sortedTickets = useMemo(() => {
-    return [...filteredTickets].sort((a, b) => {
-      let comparison = 0;
-
-      if (sortField === "ticketNumber") {
-        comparison = a.ticketNumber.localeCompare(
-          b.ticketNumber,
-          undefined,
-          { numeric: true },
-        );
-      } else {
-        comparison =
-          new Date(a.createdAt).getTime() -
-          new Date(b.createdAt).getTime();
-      }
-
-      return sortDirection === "asc"
-        ? comparison
-        : -comparison;
-    });
-  }, [filteredTickets, sortField, sortDirection]);
-
+  const filteredTickets = useMemo(() => {
+    if (!categoryFilter) return tickets;
+    return tickets.filter((ticket) => String(ticket.category.id) === categoryFilter);
+  }, [tickets, categoryFilter]);
 
   function handleSort(field: "ticketNumber" | "createdAt") {
     if (sortField === field) {
-      setSortDirection((current) =>
-        current === "asc" ? "desc" : "asc",
-      );
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
-      setSortDirection("asc");
+      setSortDirection("desc");
     }
+    setPage(1);
   }
 
   function clearFilters() {
@@ -189,30 +118,30 @@ export default function MyTickets({
     setCategoryFilter("");
     setPriorityFilter("");
     setStatusFilter("");
+    setPage(1);
   }
 
   function getPriorityClass(priority: string) {
     switch (priority.toLowerCase()) {
       case "low":
         return "bg-success-subtle text-success-emphasis border border-success-subtle";
-
       case "medium":
         return "bg-warning-subtle text-warning-emphasis border border-warning-subtle";
-
       case "high":
         return "bg-white text-dark border border-danger";
-
       case "urgent":
         return "bg-danger-subtle text-danger border border-danger-subtle";
-
       default:
         return "bg-secondary-subtle text-secondary-emphasis border";
     }
   }
 
-  if (!selectedRequester) {
+  if (!user) {
     return null;
   }
+
+  const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, totalItems);
 
   return (
     <section>
@@ -220,7 +149,7 @@ export default function MyTickets({
         <div>
           <h2 className="h4 mb-1">My Tickets</h2>
           <p className="text-muted mb-0">
-            Tickets submitted by {selectedRequester.fullName}
+            Tickets submitted by {user.name}
           </p>
         </div>
       </div>
@@ -256,100 +185,86 @@ export default function MyTickets({
 
           <div className="row g-3">
             <div className="col-12 col-md-6 col-lg-3">
-              <label
-                htmlFor="ticket-number-filter"
-                className="form-label fw-semibold"
-              >
-                Ticket No.
+              <label htmlFor="ticket-number-filter" className="form-label fw-semibold">
+                Search
               </label>
-
               <input
                 id="ticket-number-filter"
                 type="search"
                 className="form-control"
-                placeholder="Search ticket number..."
+                placeholder="Search ticket number or summary..."
                 value={ticketNumberFilter}
-                onChange={(event) =>
-                  setTicketNumberFilter(event.target.value)
-                }
+                onChange={(event) => {
+                  setTicketNumberFilter(event.target.value);
+                  setPage(1);
+                }}
               />
             </div>
 
             <div className="col-12 col-md-6 col-lg-3">
-              <label
-                htmlFor="category-filter"
-                className="form-label fw-semibold"
-              >
+              <label htmlFor="category-filter" className="form-label fw-semibold">
                 Category
               </label>
-
               <select
                 id="category-filter"
                 className="form-select"
                 value={categoryFilter}
-                onChange={(event) =>
-                  setCategoryFilter(event.target.value)
-                }
+                onChange={(event) => {
+                  setCategoryFilter(event.target.value);
+                }}
               >
                 <option value="">All Categories</option>
-
-                {categories.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="col-12 col-md-6 col-lg-3">
-              <label
-                htmlFor="priority-filter"
-                className="form-label fw-semibold"
-              >
+              <label htmlFor="priority-filter" className="form-label fw-semibold">
                 Requested Priority
               </label>
-
               <select
                 id="priority-filter"
                 className="form-select"
                 value={priorityFilter}
-                onChange={(event) =>
-                  setPriorityFilter(event.target.value)
-                }
+                onChange={(event) => {
+                  setPriorityFilter(event.target.value);
+                  setPage(1);
+                }}
               >
                 <option value="">All Priorities</option>
-
-                {priorities.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
               </select>
             </div>
 
             <div className="col-12 col-md-6 col-lg-3">
-              <label
-                htmlFor="status-filter"
-                className="form-label fw-semibold"
-              >
+              <label htmlFor="status-filter" className="form-label fw-semibold">
                 Current Status
               </label>
-
               <select
                 id="status-filter"
                 className="form-select"
                 value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(event.target.value)
-                }
+                onChange={(event) => {
+                  setStatusFilter(event.target.value);
+                  setPage(1);
+                }}
               >
                 <option value="">All Statuses</option>
-
-                {statuses.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
+                <option value="New">New</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Waiting for Requester">Waiting for Requester</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
+                <option value="Reopened">Reopened</option>
+                <option value="Cancelled">Cancelled</option>
               </select>
             </div>
           </div>
@@ -370,7 +285,7 @@ export default function MyTickets({
 
       {!loading && !error && tickets.length === 0 && (
         <div className="alert alert-secondary">
-          You have not created any tickets yet.
+          No tickets found.
         </div>
       )}
 
@@ -378,18 +293,14 @@ export default function MyTickets({
         <>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h3 className="h6 mb-0">Ticket List</h3>
-
-            <span className="text-muted small">
-              Showing {filteredTickets.length} of {tickets.length}
-            </span>
           </div>
 
           {filteredTickets.length === 0 ? (
             <div className="alert alert-secondary">
-              No tickets match the selected filters.
+              No tickets match the selected category filter.
             </div>
           ) : (
-            <div className="card shadow-sm overflow-hidden">
+            <div className="card shadow-sm overflow-hidden mb-3">
               <div className="table-responsive">
                 <table className="table table-hover align-middle mb-0">
                   <thead className="table-light">
@@ -435,7 +346,7 @@ export default function MyTickets({
                   </thead>
 
                   <tbody>
-                    {sortedTickets.map((ticket) => (
+                    {filteredTickets.map((ticket) => (
                       <tr
                         key={ticket.id}
                         onClick={() => onOpenTicket(ticket.id)}
@@ -455,16 +366,13 @@ export default function MyTickets({
                         </td>
 
                         <td className="text-nowrap">
-                          {new Date(
-                            ticket.createdAt,
-                          ).toLocaleDateString()}
+                          {new Date(ticket.createdAt).toLocaleDateString()}
                         </td>
 
                         <td>
                           <div className="fw-semibold">
                             {ticket.summary}
                           </div>
-
                           <div className="small text-muted">
                             {ticket.category.name}
                             {" · "}
@@ -484,7 +392,7 @@ export default function MyTickets({
 
                         <td>
                           <span className="text-muted">
-                            Unassigned
+                            {ticket.owner ? ticket.owner.name : "Unassigned"}
                           </span>
                         </td>
                       </tr>
@@ -494,6 +402,36 @@ export default function MyTickets({
               </div>
             </div>
           )}
+
+          <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mt-4 pt-3 border-top">
+            <span className="text-muted small">
+              Showing {startItem} - {endItem} of {totalItems} tickets
+            </span>
+
+            <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={page <= 1}
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              >
+                Previous
+              </button>
+
+              <span className="small px-2">
+                Page {page} of {totalPages}
+              </span>
+
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </>
       )}
     </section>

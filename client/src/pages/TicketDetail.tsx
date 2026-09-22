@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   createPublicComment,
   getPublicComments,
+  markResolvedIndicator,
   type PublicComment,
 } from "../api";
 
@@ -40,6 +41,7 @@ interface TicketDetailData {
     removedAt: string | null;
     uploadedAt: string;
   }[];
+  requesterResolvedIndicator?: boolean;
 }
 
 interface TicketDetailProps {
@@ -59,6 +61,34 @@ export default function TicketDetail({
   const [commentError, setCommentError] = useState("");
   const [newComment, setNewComment] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState("");
+
+  const handleToggleResolved = async () => {
+    if (!ticket) return;
+    const nextState = !ticket.requesterResolvedIndicator;
+    try {
+      setResolving(true);
+      setResolveError("");
+      const result = await markResolvedIndicator(ticket.id, nextState);
+      setTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              requesterResolvedIndicator: result.requesterResolvedIndicator,
+            }
+          : prev
+      );
+    } catch (err) {
+      setResolveError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update resolved indicator."
+      );
+    } finally {
+      setResolving(false);
+    }
+  };
 
   const loadTicket = async () => {
     try {
@@ -343,6 +373,50 @@ export default function TicketDetail({
             />
             </div>
 
+            {/* Problem Appears Resolved Section (FR-10, BR-14, UI spec §4.3) */}
+            <div className="card mb-4 border-info-subtle">
+              <div className="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                <span className="fw-semibold small">Problem Appears Resolved</span>
+                {ticket.requesterResolvedIndicator && (
+                  <span className="badge bg-success">Marked as Resolved</span>
+                )}
+              </div>
+              <div className="card-body py-3">
+                <p className="text-muted small mb-3">
+                  Indicates to IT Staff that the issue is fixed. IT Staff will review and formally close the ticket.
+                </p>
+                {resolveError && (
+                  <div className="alert alert-danger py-2 mb-3" role="alert">
+                    {resolveError}
+                  </div>
+                )}
+                {ticket.requesterResolvedIndicator ? (
+                  <div className="d-flex align-items-center gap-3">
+                    <span className="text-success small fw-medium">
+                      ✓ You have indicated this problem appears resolved.
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={handleToggleResolved}
+                      disabled={resolving}
+                    >
+                      {resolving ? "Updating..." : "Unmark Resolved"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-outline-success btn-sm"
+                    onClick={handleToggleResolved}
+                    disabled={resolving}
+                  >
+                    {resolving ? "Updating..." : "Mark as Problem Appears Resolved"}
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="card border-success mb-4">
               <div className="card-header bg-success text-white d-flex justify-content-between align-items-center">
                 <h3 className="h6 mb-0">Public Comments</h3>
@@ -362,7 +436,24 @@ export default function TicketDetail({
                     {comments.map((comment) => (
                       <article key={comment.id} className="border rounded p-3 bg-light">
                         <div className="d-flex justify-content-between gap-3 small text-muted mb-1">
-                          <strong className="text-dark">{comment.author.name}</strong>
+                          <div>
+                            <strong className="text-dark me-2">{comment.author.name}</strong>
+                            <span
+                              className={`badge ${
+                                comment.author.role === "REQUESTER"
+                                  ? "bg-secondary"
+                                  : comment.author.role === "IT_STAFF"
+                                    ? "bg-primary"
+                                    : "bg-dark"
+                              }`}
+                            >
+                              {comment.author.role === "REQUESTER"
+                                ? "Requester"
+                                : comment.author.role === "IT_STAFF"
+                                  ? "IT Staff"
+                                  : "Administrator"}
+                            </span>
+                          </div>
                           <time dateTime={comment.createdAt}>
                             {new Date(comment.createdAt).toLocaleString()}
                           </time>

@@ -84,14 +84,14 @@ describe("Lab 3 - Issue 16: Public Comments and Internal Notes", () => {
         .set("Cookie", requesterCookie);
 
       expect(response.status).toBe(200);
-      expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.data.length).toBeGreaterThan(0);
-      expect(response.body.data[0]).toHaveProperty("id");
-      expect(response.body.data[0]).toHaveProperty("content");
-      expect(response.body.data[0]).toHaveProperty("createdAt");
-      expect(response.body.data[0].author).toHaveProperty("id");
-      expect(response.body.data[0].author).toHaveProperty("name");
-      expect(response.body.data[0].author).toHaveProperty("role");
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeGreaterThan(0);
+      expect(response.body[0]).toHaveProperty("id");
+      expect(response.body[0]).toHaveProperty("content");
+      expect(response.body[0]).toHaveProperty("createdAt");
+      expect(response.body[0].author).toHaveProperty("id");
+      expect(response.body[0].author).toHaveProperty("name");
+      expect(response.body[0].author).toHaveProperty("role");
     });
 
     it("IT Staff can retrieve Public Comments on any ticket", async () => {
@@ -103,7 +103,7 @@ describe("Lab 3 - Issue 16: Public Comments and Internal Notes", () => {
         .set("Cookie", staffCookie);
 
       expect(response.status).toBe(200);
-      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(Array.isArray(response.body)).toBe(true);
     });
 
     it("Requester cannot retrieve Public Comments on another user's ticket", async () => {
@@ -326,7 +326,7 @@ describe("Lab 3 - Issue 16: Public Comments and Internal Notes", () => {
         .set("Cookie", requesterCookie);
 
       expect(commentsRes.status).toBe(200);
-      const contents = (commentsRes.body.data as Array<{ content: string }>).map(c => c.content);
+      const contents = (commentsRes.body as Array<{ content: string }>).map(c => c.content);
       expect(contents).not.toContain(SECRET_CONTENT);
     });
   });

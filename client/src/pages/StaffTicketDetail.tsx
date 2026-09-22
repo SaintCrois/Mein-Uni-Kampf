@@ -64,34 +64,72 @@ export default function StaffTicketDetail({
   const [noteError, setNoteError] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
+  const [commentsLoadError, setCommentsLoadError] = useState("");
+  const [notesLoadError, setNotesLoadError] = useState("");
+
   async function loadData() {
     try {
       setLoading(true);
       setError("");
+      setCommentsLoadError("");
+      setNotesLoadError("");
 
-      const [ticketData, assigneesData, commentsData, notesData] =
-        await Promise.all([
+      const [ticketData, assigneesResult, commentsResult, notesResult] =
+        await Promise.allSettled([
           getStaffTicketDetail(ticketId),
-          getStaffAssignees().catch(() => []),
-          getPublicComments(ticketId).catch(() => []),
-          getInternalNotes(ticketId).catch(() => []),
+          getStaffAssignees(),
+          getPublicComments(ticketId),
+          getInternalNotes(ticketId),
         ]);
 
-      setTicket(ticketData);
-      setAssignees(assigneesData);
-      setComments(commentsData);
-      setNotes(notesData);
+      if (ticketData.status === "rejected") {
+        throw new Error(
+          ticketData.reason instanceof Error
+            ? ticketData.reason.message
+            : "Failed to load ticket detail.",
+        );
+      }
 
-      if (ticketData.owner) {
-        setSelectedAssigneeId(String(ticketData.owner.id));
+      setTicket(ticketData.value);
+
+      if (assigneesResult.status === "fulfilled") {
+        setAssignees(assigneesResult.value);
+      } else {
+        setAssignees([]);
+      }
+
+      if (commentsResult.status === "fulfilled") {
+        setComments(commentsResult.value);
+      } else {
+        setComments([]);
+        setCommentsLoadError(
+          commentsResult.reason instanceof Error
+            ? commentsResult.reason.message
+            : "Failed to load public comments.",
+        );
+      }
+
+      if (notesResult.status === "fulfilled") {
+        setNotes(notesResult.value);
+      } else {
+        setNotes([]);
+        setNotesLoadError(
+          notesResult.reason instanceof Error
+            ? notesResult.reason.message
+            : "Failed to load internal notes.",
+        );
+      }
+
+      if (ticketData.value.owner) {
+        setSelectedAssigneeId(String(ticketData.value.owner.id));
       } else {
         setSelectedAssigneeId("");
       }
 
-      setSelectedPriority(ticketData.itPriority?.name ?? "Medium");
+      setSelectedPriority(ticketData.value.itPriority?.name ?? "");
 
       const validTransitions =
-        allowedTransitionsMap[ticketData.currentStatus.name] ?? [];
+        allowedTransitionsMap[ticketData.value.currentStatus.name] ?? [];
       setSelectedNextStatus(validTransitions[0] ?? "");
     } catch (err) {
       setError(
@@ -501,6 +539,7 @@ export default function StaffTicketDetail({
                       onChange={(e) => setSelectedPriority(e.target.value)}
                       aria-label="Select IT priority"
                     >
+                      {!selectedPriority && <option value="">Not set</option>}
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
@@ -580,12 +619,17 @@ export default function StaffTicketDetail({
             </div>
 
             <div className="card-body p-3" style={{ backgroundColor: "#F9FCFA" }}>
+              {commentsLoadError && (
+                <div className="alert alert-danger py-1 px-2 small mb-2" role="alert">
+                  {commentsLoadError}
+                </div>
+              )}
               {/* Comment List */}
               <div
                 className="d-flex flex-column gap-2 mb-3 overflow-auto"
                 style={{ maxHeight: "260px" }}
               >
-                {comments.length === 0 ? (
+                {comments.length === 0 && !commentsLoadError ? (
                   <p className="text-muted small text-center my-3">
                     No public comments yet.
                   </p>
@@ -678,12 +722,17 @@ export default function StaffTicketDetail({
             </div>
 
             <div className="card-body p-3" style={{ backgroundColor: "#FFFDF5" }}>
+              {notesLoadError && (
+                <div className="alert alert-danger py-1 px-2 small mb-2" role="alert">
+                  {notesLoadError}
+                </div>
+              )}
               {/* Notes List */}
               <div
                 className="d-flex flex-column gap-2 mb-3 overflow-auto"
                 style={{ maxHeight: "260px" }}
               >
-                {notes.length === 0 ? (
+                {notes.length === 0 && !notesLoadError ? (
                   <p className="text-muted small text-center my-3">
                     No internal notes yet.
                   </p>

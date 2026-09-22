@@ -131,13 +131,7 @@ export default function CreateTicket({
     setSubmitting(true);
 
     try {
-      console.log("CREATING TICKET", {
-        requesterId: selectedRequester.id,
-        requesterName: selectedRequester.fullName,
-      });
-
       const result = await createTicket({
-        requesterId: selectedRequester.id,
         categoryId: Number(categoryId),
         relatedSystemId: Number(relatedSystemId),
         summary,
@@ -146,17 +140,10 @@ export default function CreateTicket({
         attachments,
       });
 
-
-      console.log("TICKET CREATED", {
-        id: result.id,
-        ticketNumber: result.ticketNumber,
-        requesterId: result.requesterId,
-      });
-
     if (attachments.length > 0) {
         await uploadTicketAttachments(
             result.id,
-            selectedRequester.id,
+            selectedRequester.id, // Using selectedRequester for upload attachments just because of signature
             attachments,
         );
     }
@@ -178,20 +165,6 @@ export default function CreateTicket({
     setErrors({});
 
     onTicketCreated?.();
-
-
-
-
-    setSummary("");
-    setCategoryId("");
-    setRelatedSystemId("");
-    setRequestedPriority("");
-    setDescription("");
-    setAttachments([]);
-    if (attachmentInputRef.current) {
-        attachmentInputRef.current.value = "";
-    }
-    setErrors({});
     
     } catch (err) {
       setError(
