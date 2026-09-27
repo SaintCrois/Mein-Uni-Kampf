@@ -583,4 +583,455 @@ router.post("/:id/resolve-indicator", requireRequester, async (req, res) => {
   return res.status(200).json({ data: { id: updated.id, requesterResolvedIndicator: updated.requesterResolvedIndicator } });
 });
 
+// ---------------------------------------------------------------------------
+// Actions Taken Endpoints (Lab 4 - Issue 24)
+// ---------------------------------------------------------------------------
+
+function formatActionTaken(action: {
+  id: number;
+  ticketId: number;
+  actionDateTime: Date;
+  actionDescription: string;
+  result: string;
+  isFollowUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  performedBy: {
+    id: number;
+    name: string;
+    role: string;
+  };
+}) {
+  return {
+    id: action.id,
+    ticketId: action.ticketId,
+    actionDateTime: action.actionDateTime.toISOString(),
+    actionDescription: action.actionDescription,
+    result: action.result,
+    performedBy: {
+      id: action.performedBy.id,
+      name: action.performedBy.name,
+      role: action.performedBy.role,
+    },
+    isFollowUpRequired: action.isFollowUpRequired,
+    followUpNote: action.followUpNote,
+    attachmentNotes: action.attachmentNotes,
+    createdAt: action.createdAt.toISOString(),
+    updatedAt: action.updatedAt.toISOString(),
+  };
+}
+
+// GET /api/tickets/:id/actions-taken
+router.get("/:id/actions-taken", requireAuthenticatedOrLegacyRequester, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(400).json({
+        error: "Invalid ticket ID",
+        code: "INVALID_INPUT",
+        details: [],
+      });
+    }
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, requesterId: true },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: "Ticket not found",
+        code: "NOT_FOUND",
+        details: [],
+      });
+    }
+
+    if (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id) {
+      return res.status(403).json({
+        error: "Access denied",
+        code: "ACCESS_DENIED",
+        details: [],
+      });
+    }
+
+    const actions = await prisma.actionTaken.findMany({
+      where: { ticketId },
+      include: {
+        performedBy: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: [
+        { actionDateTime: "asc" },
+        { id: "asc" },
+      ],
+    });
+
+    return res.status(200).json(actions.map(formatActionTaken));
+  } catch (_error) {
+    return res.status(500).json({
+      error: "Failed to fetch actions taken",
+      code: "INTERNAL_SERVER_ERROR",
+      details: [],
+    });
+  }
+});
+
+// POST /api/tickets/:id/actions-taken
+router.post(
+  "/:id/actions-taken",
+  requireAuthenticatedOrLegacyRequester,
+  requireRole("IT_STAFF", "ADMINISTRATOR"),
+  async (req, res) => {
+    try {
+      const ticketId = Number(req.params.id);
+      if (!Number.isInteger(ticketId) || ticketId <= 0) {
+        return res.status(400).json({
+          error: "Invalid ticket ID",
+          code: "INVALID_INPUT",
+          details: [],
+        });
+      }
+
+      const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true },
+      });
+
+      if (!ticket) {
+        return res.status(404).json({
+          error: "Ticket not found",
+          code: "NOT_FOUND",
+          details: [],
+        });
+      }
+
+      const {
+        actionDateTime,
+        actionDescription,
+        result,
+        isFollowUpRequired,
+        followUpNote,
+        attachmentNotes,
+      } = req.body ?? {};
+
+      // 1. Validate actionDescription
+      if (
+        typeof actionDescription !== "string" ||
+        actionDescription.trim().length < 3 ||
+        actionDescription.trim().length > 2000
+      ) {
+        return res.status(400).json({
+          error: "Action description is required and must be between 3 and 2000 characters",
+          code: "VALIDATION_ERROR",
+          details: [],
+        });
+      }
+
+      // 2. Validate result
+      if (
+        typeof result !== "string" ||
+        result.trim().length < 1 ||
+        result.trim().length > 2000
+      ) {
+        return res.status(400).json({
+          error: "Result is required and must be between 1 and 2000 characters",
+          code: "VALIDATION_ERROR",
+          details: [],
+        });
+      }
+
+      // 3. Validate actionDateTime (optional, defaults to now)
+      let parsedDateTime = new Date();
+      if (actionDateTime !== undefined && actionDateTime !== null) {
+        if (typeof actionDateTime !== "string" || isNaN(Date.parse(actionDateTime))) {
+          return res.status(400).json({
+            error: "Action date/time must be a valid ISO 8601 date string",
+            code: "VALIDATION_ERROR",
+            details: [],
+          });
+        }
+        parsedDateTime = new Date(actionDateTime);
+      }
+
+      // 4. Validate isFollowUpRequired & followUpNote
+      const followUp = Boolean(isFollowUpRequired);
+      let sanitizedFollowUpNote: string | null = null;
+      if (followUp) {
+        if (
+          typeof followUpNote !== "string" ||
+          followUpNote.trim().length < 3 ||
+          followUpNote.trim().length > 2000
+        ) {
+          return res.status(400).json({
+            error: "Follow-up note is required (3 to 2000 characters) when follow-up is requested",
+            code: "VALIDATION_ERROR",
+            details: [],
+          });
+        }
+        sanitizedFollowUpNote = followUpNote.trim();
+      } else {
+        sanitizedFollowUpNote = null;
+      }
+
+      // 5. Validate attachmentNotes (optional, max 1000 chars)
+      let sanitizedAttachmentNotes: string | null = null;
+      if (attachmentNotes !== undefined && attachmentNotes !== null && attachmentNotes !== "") {
+        if (typeof attachmentNotes !== "string" || attachmentNotes.trim().length > 1000) {
+          return res.status(400).json({
+            error: "Attachment notes must be 1000 characters or fewer",
+            code: "VALIDATION_ERROR",
+            details: [],
+          });
+        }
+        sanitizedAttachmentNotes = attachmentNotes.trim();
+      }
+
+      // Safe duplicate submission handling: idempotent within 5s
+      const recentDuplicate = await prisma.actionTaken.findFirst({
+        where: {
+          ticketId,
+          performedById: req.user!.id,
+          actionDescription: actionDescription.trim(),
+          result: result.trim(),
+          createdAt: {
+            gte: new Date(Date.now() - 5000),
+          },
+        },
+        include: {
+          performedBy: {
+            select: { id: true, name: true, role: true },
+          },
+        },
+      });
+
+      if (recentDuplicate) {
+        return res.status(200).json(formatActionTaken(recentDuplicate));
+      }
+
+      const createdAction = await prisma.actionTaken.create({
+        data: {
+          ticketId,
+          performedById: req.user!.id,
+          actionDateTime: parsedDateTime,
+          actionDescription: actionDescription.trim(),
+          result: result.trim(),
+          isFollowUpRequired: followUp,
+          followUpNote: sanitizedFollowUpNote,
+          attachmentNotes: sanitizedAttachmentNotes,
+        },
+        include: {
+          performedBy: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      return res.status(201).json(formatActionTaken(createdAction));
+    } catch (_error) {
+      return res.status(500).json({
+        error: "Failed to create action taken",
+        code: "INTERNAL_SERVER_ERROR",
+        details: [],
+      });
+    }
+  },
+);
+
+// PATCH /api/tickets/:id/actions-taken/:actionId
+router.patch(
+  "/:id/actions-taken/:actionId",
+  requireAuthenticatedOrLegacyRequester,
+  requireRole("IT_STAFF", "ADMINISTRATOR"),
+  async (req, res) => {
+    try {
+      const ticketId = Number(req.params.id);
+      const actionId = Number(req.params.actionId);
+
+      if (!Number.isInteger(ticketId) || ticketId <= 0 || !Number.isInteger(actionId) || actionId <= 0) {
+        return res.status(400).json({
+          error: "Invalid ticket or action ID",
+          code: "INVALID_INPUT",
+          details: [],
+        });
+      }
+
+      const prisma = getPrisma();
+      const existingAction = await prisma.actionTaken.findFirst({
+        where: {
+          id: actionId,
+          ticketId,
+        },
+        include: {
+          performedBy: {
+            select: { id: true, name: true, role: true },
+          },
+        },
+      });
+
+      if (!existingAction) {
+        return res.status(404).json({
+          error: "Action taken not found",
+          code: "NOT_FOUND",
+          details: [],
+        });
+      }
+
+      // Optimistic concurrency check (BR-19)
+      const clientExpectedUpdatedAt = req.headers["if-unmodified-since"] || req.body?.expectedUpdatedAt;
+      if (clientExpectedUpdatedAt) {
+        const clientDate = new Date(clientExpectedUpdatedAt);
+        if (!isNaN(clientDate.getTime())) {
+          if (existingAction.updatedAt.getTime() > clientDate.getTime()) {
+            return res.status(409).json({
+              error: "Conflict: Action Taken has been modified by another operation",
+              code: "CONCURRENCY_CONFLICT",
+              details: [],
+            });
+          }
+        }
+      }
+
+      const {
+        actionDateTime,
+        actionDescription,
+        result,
+        isFollowUpRequired,
+        followUpNote,
+        attachmentNotes,
+      } = req.body ?? {};
+
+      const updateData: {
+        actionDateTime?: Date;
+        actionDescription?: string;
+        result?: string;
+        isFollowUpRequired?: boolean;
+        followUpNote?: string | null;
+        attachmentNotes?: string | null;
+      } = {};
+
+      // 1. Description
+      if (actionDescription !== undefined) {
+        if (
+          typeof actionDescription !== "string" ||
+          actionDescription.trim().length < 3 ||
+          actionDescription.trim().length > 2000
+        ) {
+          return res.status(400).json({
+            error: "Action description must be between 3 and 2000 characters",
+            code: "VALIDATION_ERROR",
+            details: [],
+          });
+        }
+        updateData.actionDescription = actionDescription.trim();
+      }
+
+      // 2. Result
+      if (result !== undefined) {
+        if (
+          typeof result !== "string" ||
+          result.trim().length < 1 ||
+          result.trim().length > 2000
+        ) {
+          return res.status(400).json({
+            error: "Result must be between 1 and 2000 characters",
+            code: "VALIDATION_ERROR",
+            details: [],
+          });
+        }
+        updateData.result = result.trim();
+      }
+
+      // 3. actionDateTime
+      if (actionDateTime !== undefined && actionDateTime !== null) {
+        if (typeof actionDateTime !== "string" || isNaN(Date.parse(actionDateTime))) {
+          return res.status(400).json({
+            error: "Action date/time must be a valid ISO 8601 date string",
+            code: "VALIDATION_ERROR",
+            details: [],
+          });
+        }
+        updateData.actionDateTime = new Date(actionDateTime);
+      }
+
+      // 4. Follow-up handling
+      const effectiveFollowUp =
+        isFollowUpRequired !== undefined
+          ? Boolean(isFollowUpRequired)
+          : existingAction.isFollowUpRequired;
+
+      if (effectiveFollowUp) {
+        const effectiveNote =
+          followUpNote !== undefined ? followUpNote : existingAction.followUpNote;
+
+        if (
+          typeof effectiveNote !== "string" ||
+          effectiveNote.trim().length < 3 ||
+          effectiveNote.trim().length > 2000
+        ) {
+          return res.status(400).json({
+            error: "Follow-up note is required (3 to 2000 characters) when follow-up is requested",
+            code: "VALIDATION_ERROR",
+            details: [],
+          });
+        }
+        updateData.isFollowUpRequired = true;
+        updateData.followUpNote = effectiveNote.trim();
+      } else {
+        updateData.isFollowUpRequired = false;
+        updateData.followUpNote = null;
+      }
+
+      // 5. Attachment Notes
+      if (attachmentNotes !== undefined) {
+        if (attachmentNotes === null || attachmentNotes === "") {
+          updateData.attachmentNotes = null;
+        } else if (typeof attachmentNotes !== "string" || attachmentNotes.trim().length > 1000) {
+          return res.status(400).json({
+            error: "Attachment notes must be 1000 characters or fewer",
+            code: "VALIDATION_ERROR",
+            details: [],
+          });
+        } else {
+          updateData.attachmentNotes = attachmentNotes.trim();
+        }
+      }
+
+      const updatedAction = await prisma.actionTaken.update({
+        where: { id: actionId },
+        data: updateData,
+        include: {
+          performedBy: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      return res.status(200).json(formatActionTaken(updatedAction));
+    } catch (_error) {
+      return res.status(500).json({
+        error: "Failed to update action taken",
+        code: "INTERNAL_SERVER_ERROR",
+        details: [],
+      });
+    }
+  },
+);
+
 export default router;

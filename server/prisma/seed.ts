@@ -435,9 +435,197 @@ async function main() {
       });
     }
   }
+    // 9. Example Actions Taken (Lab 4 - Issue 24)
+    // Using existing tickets and users for realistic examples
+    const vpnTicketForActions = await prisma.ticket.findUnique({
+      where: { ticketNumber: "TKT-2026-000002" },
+    });
+    const bsodTicketForActions = await prisma.ticket.findUnique({
+      where: { ticketNumber: "TKT-2026-000003" },
+    });
+    const printerTicketForActions = await prisma.ticket.findUnique({
+      where: { ticketNumber: "TKT-2026-000005" },
+    });
+    const gradeTicketForActions = await prisma.ticket.findUnique({
+      where: { ticketNumber: "TKT-2026-000004" },
+    });
+
+    const somchaiUser = userMap.get("somchai.jaidee@example.com")!;
+    const anongUser = userMap.get("anong.prasert@example.com")!;
+    const chaiyaUser = userMap.get("chaiya.suksan@example.com")!;
+    const adminUser = userMap.get("admin@example.com")!;
+
+    // Ticket TKT-2026-000002 (VPN) - Multiple actions by different staff
+    if (vpnTicketForActions) {
+      // Action 1: Initial diagnostic by Somchai (ticket owner)
+      const existingAction1 = await prisma.actionTaken.findFirst({
+        where: {
+          ticketId: vpnTicketForActions.id,
+          actionDescription: "Analyzed FortiClient VPN logs from user workstation. Identified MTU mismatch causing periodic disconnects.",
+        },
+      });
+      if (!existingAction1) {
+        await prisma.actionTaken.create({
+          data: {
+            ticketId: vpnTicketForActions.id,
+            performedById: somchaiUser.id,
+            actionDateTime: new Date("2026-09-20T09:30:00Z"),
+            actionDescription: "Analyzed FortiClient VPN logs from user workstation. Identified MTU mismatch causing periodic disconnects.",
+            result: "MTU mismatch confirmed. Standard MTU 1500 causes fragmentation with ISP encapsulation. Recommended MTU 1350.",
+            isFollowUpRequired: true,
+            followUpNote: "Push MTU 1350 configuration profile to user endpoint via MDM. Verify stability over 48 hours.",
+            attachmentNotes: "vpn-client-logs-2026-09-20.txt attached to ticket",
+          },
+        });
+      }
+
+      // Action 2: Configuration push by Anong (different staff member)
+      const existingAction2 = await prisma.actionTaken.findFirst({
+        where: {
+          ticketId: vpnTicketForActions.id,
+          actionDescription: "Deployed MTU 1350 configuration profile to user endpoint via Intune MDM.",
+        },
+      });
+      if (!existingAction2) {
+        await prisma.actionTaken.create({
+          data: {
+            ticketId: vpnTicketForActions.id,
+            performedById: anongUser.id,
+            actionDateTime: new Date("2026-09-21T14:15:00Z"),
+            actionDescription: "Deployed MTU 1350 configuration profile to user endpoint via Intune MDM.",
+            result: "Profile deployed successfully. User confirmed receipt and applied configuration.",
+            isFollowUpRequired: true,
+            followUpNote: "Monitor connection stability for 48 hours. Schedule follow-up call with user on 2026-09-23.",
+            attachmentNotes: "intune-deployment-report-2026-09-21.pdf",
+          },
+        });
+      }
+
+      // Action 3: Verification by Somchai (follow-up complete)
+      const existingAction3 = await prisma.actionTaken.findFirst({
+        where: {
+          ticketId: vpnTicketForActions.id,
+          actionDescription: "Follow-up verification call with user. VPN connection stable for 48+ hours with no disconnects.",
+        },
+      });
+      if (!existingAction3) {
+        await prisma.actionTaken.create({
+          data: {
+            ticketId: vpnTicketForActions.id,
+            performedById: somchaiUser.id,
+            actionDateTime: new Date("2026-09-23T10:00:00Z"),
+            actionDescription: "Follow-up verification call with user. VPN connection stable for 48+ hours with no disconnects.",
+            result: "Issue resolved. User reports zero disconnects since MTU adjustment. Closing follow-up requirement.",
+            isFollowUpRequired: false,
+            followUpNote: null,
+            attachmentNotes: "user-confirmation-email-2026-09-23.eml",
+          },
+        });
+      }
+    }
+
+    // Ticket TKT-2026-000003 (BSOD) - Single action, no follow-up
+    if (bsodTicketForActions) {
+      const existingAction = await prisma.actionTaken.findFirst({
+        where: {
+          ticketId: bsodTicketForActions.id,
+          actionDescription: "Rolled back display driver from version 24.12 to 24.10 via DDU in safe mode. Re-applied Windows update KB5043145.",
+        },
+      });
+      if (!existingAction) {
+        await prisma.actionTaken.create({
+          data: {
+            ticketId: bsodTicketForActions.id,
+            performedById: anongUser.id,
+            actionDateTime: new Date("2026-09-18T11:00:00Z"),
+            actionDescription: "Rolled back display driver from version 24.12 to 24.10 via DDU in safe mode. Re-applied Windows update KB5043145.",
+            result: "System stable after driver rollback. No BSOD reproduced in 4-hour stress test. User confirmed working normally.",
+            isFollowUpRequired: false,
+            followUpNote: null,
+            attachmentNotes: "ddus-cleanup-log-2026-09-18.txt; stress-test-results.xlsx",
+          },
+        });
+      }
+    }
+
+    // Ticket TKT-2026-000005 (Printer) - Resolved ticket with action
+    if (printerTicketForActions) {
+      const existingAction = await prisma.actionTaken.findFirst({
+        where: {
+          ticketId: printerTicketForActions.id,
+          actionDescription: "Cleared paper jam from Tray 2. Replaced worn pickup roller. Reset toner counter.",
+        },
+      });
+      if (!existingAction) {
+        await prisma.actionTaken.create({
+          data: {
+            ticketId: printerTicketForActions.id,
+            performedById: somchaiUser.id,
+            actionDateTime: new Date("2026-09-15T16:30:00Z"),
+            actionDescription: "Cleared paper jam from Tray 2. Replaced worn pickup roller. Reset toner counter.",
+            result: "Printer operational. Test printed 20 pages successfully. Toner warning cleared.",
+            isFollowUpRequired: false,
+            followUpNote: null,
+            attachmentNotes: "printer-test-page-2026-09-15.pdf",
+          },
+        });
+      }
+    }
+
+    // Ticket TKT-2026-000004 (Grade Submission) - Waiting for Requester, action by Chaiya
+    if (gradeTicketForActions) {
+      const existingAction = await prisma.actionTaken.findFirst({
+        where: {
+          ticketId: gradeTicketForActions.id,
+          actionDescription: "Reproduced session timeout at 30-minute mark during batch upload. Increased session timeout to 60 minutes in app config.",
+        },
+      });
+      if (!existingAction) {
+        await prisma.actionTaken.create({
+          data: {
+            ticketId: gradeTicketForActions.id,
+            performedById: chaiyaUser.id,
+            actionDateTime: new Date("2026-09-22T13:45:00Z"),
+            actionDescription: "Reproduced session timeout at 30-minute mark during batch upload. Increased session timeout to 60 minutes in app config.",
+            result: "Configuration change deployed to staging. Awaiting requester validation in production.",
+            isFollowUpRequired: true,
+            followUpNote: "Requester to test batch upload in production and confirm session persists beyond 30 minutes.",
+            attachmentNotes: "staging-config-change-log-2026-09-22.txt",
+          },
+        });
+      }
+    }
+
+    // Ticket TKT-2026-000009 (Reopened) - Admin action
+    const reopenedTicket = await prisma.ticket.findUnique({
+      where: { ticketNumber: "TKT-2026-000009" },
+    });
+    if (reopenedTicket) {
+      const existingAction = await prisma.actionTaken.findFirst({
+        where: {
+          ticketId: reopenedTicket.id,
+          actionDescription: "Investigated shared mailbox password reset failure. Found expired service account certificate. Renewed certificate and updated credentials.",
+        },
+      });
+      if (!existingAction) {
+        await prisma.actionTaken.create({
+          data: {
+            ticketId: reopenedTicket.id,
+            performedById: adminUser.id,
+            actionDateTime: new Date("2026-09-24T09:00:00Z"),
+            actionDescription: "Investigated shared mailbox password reset failure. Found expired service account certificate. Renewed certificate and updated credentials.",
+            result: "Shared mailbox accessible. Password reset completed. Service account certificate valid until 2027-09-24.",
+            isFollowUpRequired: false,
+            followUpNote: null,
+            attachmentNotes: "certificate-renewal-confirmation-2026-09-24.pdf",
+          },
+        });
+      }
+    }
+
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});

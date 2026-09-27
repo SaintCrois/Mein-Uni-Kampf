@@ -622,10 +622,21 @@ async function handleUpdateStatus(req: Request, res: Response) {
       data: {
         currentStatusId: nextStatus.id,
       },
-      include: ticketIncludeDetails,
+      include: {
+        currentStatus: true,
+      },
     });
 
-    return res.status(200).json(updated);
+    // Calculate permitted next statuses for the NEW status
+    const permittedNextStatuses = allowedTransitions[nextStatus.name] ?? [];
+
+    return res.status(200).json({
+      id: updated.id,
+      ticketNumber: updated.ticketNumber,
+      status: nextStatus.name,
+      updatedAt: updated.updatedAt.toISOString(),
+      permittedNextStatuses,
+    });
   } catch (_error) {
     return res.status(500).json({
       error: "Failed to update ticket status",
