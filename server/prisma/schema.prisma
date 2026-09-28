@@ -49,6 +49,7 @@ model User {
   assignedTickets    Ticket[]        @relation("TicketOwner")
   publicComments     PublicComment[]
   internalNotes      InternalNote[]
+  actionsPerformed   ActionTaken[]
 
   @@index([email])
   @@index([role, isActive])
@@ -86,6 +87,7 @@ model Ticket {
   attachments                Attachment[]
   publicComments             PublicComment[]
   internalNotes              InternalNote[]
+  actionsTaken               ActionTaken[]
 
   @@index([ticketNumber])
   @@index([requesterId])
@@ -142,4 +144,26 @@ model InternalNote {
 
   @@index([ticketId])
   @@index([authorId])
+}
+
+model ActionTaken {
+  id                 Int      @id @default(autoincrement())
+  ticketId           Int
+  performedById      Int
+  actionDateTime     DateTime @default(now())
+  actionDescription  String
+  result             String
+  isFollowUpRequired Boolean  @default(false)
+  followUpNote       String?
+  attachmentNotes    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performedBy User   @relation(fields: [performedById], references: [id])
+
+  @@index([ticketId])
+  @@index([performedById])
+  @@index([isFollowUpRequired])
+  @@index([actionDateTime])
 }
