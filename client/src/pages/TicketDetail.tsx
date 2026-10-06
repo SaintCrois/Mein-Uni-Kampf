@@ -5,6 +5,7 @@ import {
   markResolvedIndicator,
   type PublicComment,
 } from "../api";
+import ActionsTaken from "../components/ActionsTaken";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -378,12 +379,16 @@ export default function TicketDetail({
               <div className="card-header bg-light d-flex justify-content-between align-items-center py-2">
                 <span className="fw-semibold small">Problem Appears Resolved</span>
                 {ticket.requesterResolvedIndicator && (
-                  <span className="badge bg-success">Marked as Resolved</span>
+                  <span className="badge bg-success">Advisory: Appears Resolved</span>
                 )}
               </div>
               <div className="card-body py-3">
                 <p className="text-muted small mb-3">
-                  Indicates to IT Staff that the issue is fixed. IT Staff will review and formally close the ticket.
+                  Indicates to IT Staff that the issue is fixed. This is an
+                  advisory signal only &mdash; it does not change your
+                  ticket&rsquo;s formal status. The formal status stays{" "}
+                  <strong>{ticket.currentStatus.name}</strong> until IT Staff
+                  verifies the work and formally resolves the ticket.
                 </p>
                 {resolveError && (
                   <div className="alert alert-danger py-2 mb-3" role="alert">
@@ -416,6 +421,9 @@ export default function TicketDetail({
                 )}
               </div>
             </div>
+
+            {/* Actions Taken (Lab 4 — read-only for requesters) */}
+            <ActionsTaken ticketId={ticketId} canManage={false} />
 
             <div className="card border-success mb-4">
               <div className="card-header bg-success text-white d-flex justify-content-between align-items-center">
