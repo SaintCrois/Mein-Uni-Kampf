@@ -61,13 +61,15 @@ const ticketIncludeDetails = {
   },
 };
 
+// Final BR-11 status-transition matrix (Issue 23, docs/lab-04/specification.md).
+// Only these transitions are accepted; every other pair must be rejected.
 const allowedTransitions: Record<string, string[]> = {
   New: ["Open", "Cancelled"],
   Open: ["In Progress", "Waiting for Requester", "Resolved", "Cancelled"],
   "In Progress": ["Open", "Waiting for Requester", "Resolved", "Cancelled"],
-  "Waiting for Requester": ["In Progress", "Open", "Resolved", "Cancelled"],
-  Resolved: ["Closed", "Reopened", "Cancelled"],
-  Reopened: ["In Progress", "Open", "Resolved", "Cancelled"],
+  "Waiting for Requester": ["In Progress", "Resolved", "Cancelled"],
+  Resolved: ["Closed", "Reopened"],
+  Reopened: ["In Progress", "Resolved", "Cancelled"],
   Closed: [],
   Cancelled: [],
 };
@@ -592,28 +594,68 @@ async function handleUpdateStatus(req: Request, res: Response) {
 
     if (!nextStatus) {
       return res.status(400).json({
-        error: "Invalid status transition",
+        error: "Invalid status",
         code: "INVALID_STATUS",
         details: [],
       });
     }
 
-    const validNextStatuses =
-      allowedTransitions[ticket.currentStatus.name] ?? [];
+    const currentStatusName = ticket.currentStatus.name;
+    const permittedTransitions = allowedTransitions[currentStatusName] ?? [];
 
-    if (!validNextStatuses.includes(nextStatus.name)) {
+    // Optimistic concurrency guard (FR-19): reject stale updates when the
+    // client presents the version it last saw.
+    const clientExpectedUpdatedAt =
+      req.headers["if-unmodified-since"] || req.body?.expectedUpdatedAt;
+    if (clientExpectedUpdatedAt) {
+      const clientDate = new Date(clientExpectedUpdatedAt as string);
+      if (
+        !isNaN(clientDate.getTime()) &&
+        ticket.updatedAt.getTime() > clientDate.getTime()
+      ) {
+        return res.status(409).json({
+          error: "Conflict: Ticket has been modified by another operation",
+          code: "CONCURRENCY_CONFLICT",
+          details: {
+            currentStatus: currentStatusName,
+            updatedAt: ticket.updatedAt.toISOString(),
+          },
+        });
+      }
+    }
+
+    if (!permittedTransitions.includes(nextStatus.name)) {
       return res.status(400).json({
-        error: "Invalid status transition",
+        error: `Invalid status transition from ${currentStatusName} to ${nextStatus.name}. Permitted transitions: ${
+          permittedTransitions.length > 0
+            ? permittedTransitions.join(", ")
+            : "none (terminal status)"
+        }.`,
         code: "INVALID_STATUS_TRANSITION",
-        details: [],
+        details: {
+          currentStatus: currentStatusName,
+          attemptedStatus: nextStatus.name,
+          permittedTransitions,
+        },
       });
     }
 
-    if (ticket.currentStatus.name === "New" && nextStatus.name === "Open") {
+    // BR-13 gate: a ticket in New may only advance to Open once it has an
+    // owner (claimed or assigned).
+    if (
+      currentStatusName === "New" &&
+      nextStatus.name === "Open" &&
+      ticket.ownerId === null
+    ) {
       return res.status(400).json({
-        error: "Ticket in New status must be claimed or assigned to advance to Open",
+        error:
+          "Ticket in New status must be claimed or assigned to advance to Open",
         code: "INVALID_STATUS_TRANSITION",
-        details: []
+        details: {
+          currentStatus: currentStatusName,
+          attemptedStatus: nextStatus.name,
+          permittedTransitions,
+        },
       });
     }
 

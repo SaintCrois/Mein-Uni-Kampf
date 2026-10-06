@@ -119,6 +119,68 @@ a:focus-visible,
   color: #0f5132 !important;
   border-color: #a3cfbb !important;
   font-weight: 600;
+
+/* ---------------------------------------------------------------------------
+ * Lab 4 — Actions Taken (responsive table)
+ * Desktop: standard table inside a horizontally scrollable wrapper.
+ * Mobile (<768px): rows stack into labeled card blocks without page overflow.
+ * ------------------------------------------------------------------------- */
+.actions-taken-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+  .actions-taken-table thead {
+    display: none;
+  }
+
+  .actions-taken-table,
+  .actions-taken-table tbody,
+  .actions-taken-table tr,
+  .actions-taken-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .actions-taken-table tr {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    background: #ffffff;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+
+  .actions-taken-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    border: none;
+    border-bottom: 1px solid #f1f3f5;
+    padding: 0.35rem 0;
+    text-align: right;
+  }
+
+  .actions-taken-table td:last-child {
+    border-bottom: none;
+  }
+
+  .actions-taken-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #6c757d;
+    text-align: left;
+    flex: 0 0 auto;
+  }
+
+  .actions-taken-table td > div {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
 }
 
 .priority-medium {

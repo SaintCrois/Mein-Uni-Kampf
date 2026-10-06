@@ -260,7 +260,9 @@ export async function markResolvedIndicator(
     const data = await response.json().catch(() => null);
     throw new Error(data?.error || "Failed to update resolved indicator.");
   }
-  return response.json();
+  const data = await response.json();
+  // The API wraps the payload in { data: ... } — unwrap for consumers.
+  return data?.data ?? data;
 }
 
 export interface TicketAttachment {
@@ -347,6 +349,119 @@ export async function getStaffTicketDetail(ticketId: number): Promise<TicketDeta
   if (!response.ok) {
     const data = await response.json().catch(() => null);
     throw new Error(data?.error || "Failed to fetch staff ticket details.");
+  }
+
+  return response.json();
+}
+
+/**
+ * Error carrying the HTTP status and machine-readable code from the API so
+ * callers can distinguish forbidden, conflict, and validation failures.
+ */
+export class ApiError extends Error {
+  status: number;
+  code: string;
+
+  constructor(message: string, status: number, code: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+async function throwApiError(response: Response, fallback: string): Promise<never> {
+  const data = await response.json().catch(() => null);
+  throw new ApiError(
+    data?.error || fallback,
+    response.status,
+    data?.code || "UNKNOWN_ERROR",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Actions Taken (Lab 4 — Issue 24 API)
+// ---------------------------------------------------------------------------
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  actionDateTime: string;
+  actionDescription: string;
+  result: string;
+  performedBy: {
+    id: number;
+    name: string;
+    role: string;
+  };
+  isFollowUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActionTakenInput {
+  actionDateTime?: string;
+  actionDescription: string;
+  result: string;
+  isFollowUpRequired?: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+}
+
+export async function getActionsTaken(ticketId: number): Promise<ActionTaken[]> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "Failed to fetch actions taken.");
+  }
+
+  const result = await response.json();
+  return Array.isArray(result) ? result : (result.data ?? []);
+}
+
+export async function createActionTaken(
+  ticketId: number,
+  input: ActionTakenInput,
+): Promise<ActionTaken> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "Failed to create action taken.");
+  }
+
+  return response.json();
+}
+
+export async function updateActionTaken(
+  ticketId: number,
+  actionId: number,
+  input: ActionTakenInput,
+  expectedUpdatedAt?: string,
+): Promise<ActionTaken> {
+  const response = await fetch(
+    `${API_URL}/api/tickets/${ticketId}/actions-taken/${actionId}`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(expectedUpdatedAt ? { "If-Unmodified-Since": expectedUpdatedAt } : {}),
+      },
+      body: JSON.stringify(input),
+    },
+  );
+
+  if (!response.ok) {
+    await throwApiError(response, "Failed to update action taken.");
   }
 
   return response.json();
@@ -707,22 +822,34 @@ export async function updateTicketPriority(
   return response.json();
 }
 
+export interface StatusUpdateResult {
+  id: number;
+  ticketNumber: string;
+  status: string;
+  updatedAt: string;
+  permittedNextStatuses: string[];
+}
+
 export async function updateTicketStatus(
   ticketId: number,
   status: string,
-): Promise<TicketDetail> {
+  expectedUpdatedAt?: string,
+): Promise<StatusUpdateResult> {
   const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
     method: "PATCH",
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(expectedUpdatedAt ? { "If-Unmodified-Since": expectedUpdatedAt } : {}),
     },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({
+      status,
+      ...(expectedUpdatedAt ? { expectedUpdatedAt } : {}),
+    }),
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw new Error(data?.error || "Failed to update ticket status.");
+    await throwApiError(response, "Failed to update ticket status.");
   }
 
   return response.json();
