@@ -6,12 +6,14 @@ type MyTicketsProps = {
   onOpenTicket: (ticketId: number) => void;
   onCreateTicket: () => void;
   refreshKey?: number;
+  initialStatus?: string;
 };
 
 export default function MyTickets({
   onOpenTicket,
   onCreateTicket,
   refreshKey = 0,
+  initialStatus = "",
 }: MyTicketsProps) {
   const { user } = useAuth();
 
@@ -24,7 +26,9 @@ export default function MyTickets({
   // Server-side filters
   const [ticketNumberFilter, setTicketNumberFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+
+  useEffect(() => { setStatusFilter(initialStatus); setPage(1); }, [initialStatus]);
   const [sortField, setSortField] = useState<"ticketNumber" | "createdAt">(
     "createdAt",
   );

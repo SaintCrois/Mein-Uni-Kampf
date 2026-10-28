@@ -14,6 +14,9 @@ import { checkSystem } from "./api";
 import StaffTickets from "./pages/StaffTickets";
 import StaffTicketDetail from "./pages/StaffTicketDetail";
 import UserManagement from "./pages/UserManagement";
+import RequesterDashboard from "./pages/RequesterDashboard";
+import StaffDashboard from "./pages/StaffDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function AppContent() {
   const {
@@ -33,10 +36,13 @@ function AppContent() {
     | "staff-tickets"
   | "staff-ticket-detail"
     | "admin-users"
+    | "requester-dashboard" | "staff-dashboard" | "admin-dashboard"
   >("home");
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [requesterDashboardStatus, setRequesterDashboardStatus] = useState("");
+  const [staffDashboardFilters, setStaffDashboardFilters] = useState<{ ownership?: "all" | "unassigned" | "mine"; status?: string; itPriority?: string }>({});
 
   const [healthStatus, setHealthStatus] = useState("Not checked");
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
@@ -58,9 +64,9 @@ function AppContent() {
   }
 
   function primaryPage() {
-    if (user?.role === "IT_STAFF") return "staff-tickets";
-    if (user?.role === "ADMINISTRATOR") return "admin-users";
-    return "my-tickets";
+    if (user?.role === "IT_STAFF") return "staff-dashboard";
+    if (user?.role === "ADMINISTRATOR") return "admin-dashboard";
+    return "requester-dashboard";
   }
 
   useEffect(() => {
@@ -136,6 +142,7 @@ function AppContent() {
               <>
                 {user.role === "REQUESTER" && (
                   <>
+                    <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("requester-dashboard")}>Dashboard</button>
                     <button
                       type="button"
                       className="btn btn-light btn-sm"
@@ -153,14 +160,10 @@ function AppContent() {
                   </>
                 )}
                 {user.role === "IT_STAFF" && (
-                  <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("staff-tickets")}>
-                    Ticket Queue
-                  </button>
+                  <><button type="button" className="btn btn-light btn-sm" onClick={() => setPage("staff-dashboard")}>Dashboard</button><button type="button" className="btn btn-light btn-sm" onClick={() => setPage("staff-tickets")}>Ticket Queue</button></>
                 )}
                 {user.role === "ADMINISTRATOR" && (
-                  <button type="button" className="btn btn-light btn-sm" onClick={() => setPage("admin-users")}>
-                    User Management
-                  </button>
+                  <><button type="button" className="btn btn-light btn-sm" onClick={() => setPage("admin-dashboard")}>Dashboard</button><button type="button" className="btn btn-light btn-sm" onClick={() => setPage("staff-tickets")}>Ticket Queue</button><button type="button" className="btn btn-light btn-sm" onClick={() => setPage("admin-users")}>User Management</button></>
                 )}
                 <button
                   type="button"
@@ -206,7 +209,10 @@ function AppContent() {
           onOpenTicket={handleOpenTicket}
           onCreateTicket={() => setPage("create-ticket")}
           refreshKey={refreshKey}
+          initialStatus={requesterDashboardStatus}
         />
+      ) : page === "requester-dashboard" && user.role === "REQUESTER" ? (
+        <RequesterDashboard onCreateTicket={() => setPage("create-ticket")} onOpenTicket={handleOpenTicket} onShowTickets={(status) => { setRequesterDashboardStatus(status ?? ""); setPage("my-tickets"); }} />
       ) : page === "ticket-detail" &&
         selectedTicketId !== null ? (
         <TicketDetail
@@ -228,7 +234,7 @@ function AppContent() {
         />
       ) : page === "staff-tickets" ? (
         user.role === "IT_STAFF" || user.role === "ADMINISTRATOR" ? (
-          <StaffTickets onOpenTicket={handleOpenTicket} />
+          <StaffTickets onOpenTicket={handleOpenTicket} initialFilters={staffDashboardFilters} />
         ) : (
           <section className="card shadow-sm border-danger">
             <div className="card-header bg-danger text-white">
@@ -243,6 +249,10 @@ function AppContent() {
         )
       ) : page === "admin-users" && user.role === "ADMINISTRATOR" ? (
         <UserManagement />
+      ) : page === "staff-dashboard" && user.role === "IT_STAFF" ? (
+        <StaffDashboard onOpenTicket={handleOpenTicket} onShowQueue={(filters) => { setStaffDashboardFilters(filters); setPage("staff-tickets"); }} />
+      ) : page === "admin-dashboard" && user.role === "ADMINISTRATOR" ? (
+        <AdminDashboard onOpenTicket={handleOpenTicket} onShowQueue={(filters) => { setStaffDashboardFilters(filters); setPage("staff-tickets"); }} onManageUsers={() => setPage("admin-users")} />
       ) : (
         <>
           <div className="mb-4">

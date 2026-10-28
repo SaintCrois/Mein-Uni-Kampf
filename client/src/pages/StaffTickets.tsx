@@ -9,9 +9,10 @@ import { useAuth } from "../context/AuthContext";
 
 type StaffTicketsProps = {
   onOpenTicket: (ticketId: number) => void;
+  initialFilters?: { ownership?: "all" | "unassigned" | "mine"; status?: string; itPriority?: string };
 };
 
-export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
+export default function StaffTickets({ onOpenTicket, initialFilters }: StaffTicketsProps) {
   const { user } = useAuth();
 
   const [tickets, setTickets] = useState<StaffTicket[]>([]);
@@ -21,12 +22,14 @@ export default function StaffTickets({ onOpenTicket }: StaffTicketsProps) {
 
   // Search & Filter state
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(initialFilters?.status ?? "");
   const [categories, setCategories] = useState<ReferenceItem[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [requestedPriority, setRequestedPriority] = useState("");
-  const [itPriority, setItPriority] = useState("");
-  const [ownership, setOwnership] = useState<"all" | "unassigned" | "mine">("all");
+  const [itPriority, setItPriority] = useState(initialFilters?.itPriority ?? "");
+  const [ownership, setOwnership] = useState<"all" | "unassigned" | "mine">(initialFilters?.ownership ?? "all");
+
+  useEffect(() => { setStatus(initialFilters?.status ?? ""); setItPriority(initialFilters?.itPriority ?? ""); setOwnership(initialFilters?.ownership ?? "all"); setPage(1); }, [initialFilters]);
 
   // Sorting state
   const [sortBy, setSortField] = useState<"createdAt" | "ticketNumber">("createdAt");
