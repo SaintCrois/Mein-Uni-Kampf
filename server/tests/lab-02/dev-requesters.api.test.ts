@@ -3,6 +3,18 @@ import { describe, expect, it } from "vitest";
 import { app } from "../../src/app.js";
 
 describe("GET /api/dev-requesters", () => {
+  it("is unavailable outside the legacy test harness", async () => {
+    const originalEnvironment = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+
+    try {
+      const response = await request(app).get("/api/dev-requesters");
+      expect(response.status).toBe(404);
+    } finally {
+      process.env.NODE_ENV = originalEnvironment;
+    }
+  });
+
   it("returns only active development requesters", async () => {
     const response = await request(app).get("/api/dev-requesters");
 

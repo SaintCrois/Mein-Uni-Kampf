@@ -15,9 +15,12 @@ const UPLOAD_DIR = path.resolve(__dirname, "../../uploads");
 const router = Router();
 router.use(requireAuthenticatedOrLegacyRequester);
 
-function canAccessTicket(req: Express.Request, requesterId: number, allowAdmin: boolean) {
-  return req.user!.role !== "REQUESTER" && (allowAdmin || req.user!.role === "IT_STAFF") ||
-    (req.user!.role === "REQUESTER" && requesterId === req.user!.id);
+function canAccessTicket(req: Express.Request, requesterId: number) {
+  return (
+    req.user!.role === "IT_STAFF" ||
+    req.user!.role === "ADMINISTRATOR" ||
+    (req.user!.role === "REQUESTER" && requesterId === req.user!.id)
+  );
 }
 
 
@@ -110,7 +113,7 @@ router.post(
         });
       }
 
-      if (!canAccessTicket(req, ticket.requesterId, false)) {
+      if (!canAccessTicket(req, ticket.requesterId)) {
         return res.status(403).json({
           error: "Access denied",
         });
@@ -208,7 +211,7 @@ router.get(
         });
       }
 
-      if (!canAccessTicket(req, ticket.requesterId, true)) {
+      if (!canAccessTicket(req, ticket.requesterId)) {
         return res.status(403).json({
           error: "Access denied",
         });
@@ -297,7 +300,7 @@ router.delete(
         });
       }
 
-      if (!canAccessTicket(req, ticket.requesterId, false)) {
+      if (!canAccessTicket(req, ticket.requesterId)) {
         return res.status(403).json({
           error: "Access denied",
         });
