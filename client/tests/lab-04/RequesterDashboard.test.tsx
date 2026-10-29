@@ -1,0 +1,10 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import RequesterDashboard from "../../src/pages/RequesterDashboard";
+import * as api from "../../src/api";
+afterEach(() => vi.restoreAllMocks());
+const dashboard: api.RequesterDashboard = { metrics: { totalOpenTickets: 3, ticketsWaitingForRequester: 1, recentlyResolvedTickets: 2, attentionRequiredTickets: 1 }, recentTickets: [{ id: 1, ticketNumber: "TKT-1", summary: "VPN unavailable", status: "Open", requestedPriority: "High", category: "Network", updatedAt: "2026-09-24T10:00:00.000Z", hasActionsTaken: true, actionsCount: 2, requesterResolvedIndicator: false }] };
+describe("Requester Dashboard", () => {
+  it("renders server metrics and opens ticket drill-down", async () => { vi.spyOn(api, "getRequesterDashboard").mockResolvedValue(dashboard); const open = vi.fn(); const tickets = vi.fn(); render(<RequesterDashboard onCreateTicket={vi.fn()} onOpenTicket={open} onShowTickets={tickets} />); expect(await screen.findByText("Requester Dashboard")).toBeInTheDocument(); expect(screen.getByText("3")).toBeInTheDocument(); fireEvent.click(screen.getByRole("button", { name: "TKT-1" })); expect(open).toHaveBeenCalledWith(1); fireEvent.click(screen.getByRole("button", { name: /waiting for your input/i })); expect(tickets).toHaveBeenCalledWith("Waiting for Requester"); });
+  it("renders an empty state and retryable error", async () => { const get = vi.spyOn(api, "getRequesterDashboard").mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ ...dashboard, recentTickets: [] }); render(<RequesterDashboard onCreateTicket={vi.fn()} onOpenTicket={vi.fn()} onShowTickets={vi.fn()} />); expect(await screen.findByText("Offline")).toBeInTheDocument(); fireEvent.click(screen.getByRole("button", { name: "Retry" })); await waitFor(() => expect(screen.getByText(/no support requests found/i)).toBeInTheDocument()); expect(get).toHaveBeenCalledTimes(2); });
+});

@@ -1,0 +1,7 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import StaffDashboard from "../../src/pages/StaffDashboard";
+import * as api from "../../src/api";
+afterEach(() => vi.restoreAllMocks());
+const dashboard: api.StaffDashboard = { metrics: { unassignedTickets: 2, myAssignedTickets: 4, followUpRequiredCount: 1 }, ticketsByStatus: { New: 2, Open: 1, "In Progress": 0, "Waiting for Requester": 0, Resolved: 0, Closed: 0, Reopened: 0, Cancelled: 0 }, ticketsByPriority: { Low: 0, Medium: 1, High: 1, Urgent: 1 }, urgentTickets: [{ id: 9, ticketNumber: "TKT-9", summary: "Core switch", status: "Open", itPriority: "Urgent", category: "Network", owner: null, updatedAt: "2026-09-24T10:00:00.000Z", actionsCount: 1 }] };
+describe("Staff Dashboard", () => { it("renders operational metrics and queue/detail drill-downs", async () => { vi.spyOn(api, "getStaffDashboard").mockResolvedValue(dashboard); const queue = vi.fn(); const open = vi.fn(); render(<StaffDashboard onShowQueue={queue} onOpenTicket={open} />); expect(await screen.findByText("IT Staff Operational Dashboard")).toBeInTheDocument(); expect(screen.getByRole("button", { name: /unassigned tickets/i })).toHaveTextContent("2"); fireEvent.click(screen.getByRole("button", { name: /unassigned tickets/i })); expect(queue).toHaveBeenCalledWith({ ownership: "unassigned" }); fireEvent.click(screen.getByRole("button", { name: "TKT-9" })); expect(open).toHaveBeenCalledWith(9); }); });

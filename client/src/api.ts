@@ -370,6 +370,30 @@ export class ApiError extends Error {
   }
 }
 
+export interface RequesterDashboard {
+  metrics: { totalOpenTickets: number; ticketsWaitingForRequester: number; recentlyResolvedTickets: number; attentionRequiredTickets: number };
+  recentTickets: Array<{ id: number; ticketNumber: string; summary: string; status: string; requestedPriority: string; category: string; updatedAt: string; hasActionsTaken: boolean; actionsCount: number; requesterResolvedIndicator: boolean }>;
+}
+
+export interface StaffDashboard {
+  metrics: { unassignedTickets: number; myAssignedTickets: number; followUpRequiredCount: number };
+  ticketsByStatus: Record<string, number>;
+  ticketsByPriority: Record<string, number>;
+  urgentTickets: Array<{ id: number; ticketNumber: string; summary: string; status: string; itPriority: string | null; category: string; owner: { id: number; name: string } | null; updatedAt: string; actionsCount: number }>;
+}
+
+export interface AdminDashboard { staffDashboard: StaffDashboard; userMetrics: { totalUsers: number; activeUsers: number; inactiveUsers: number; usersByRole: Record<string, number> } }
+
+async function getDashboard<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_URL}/api/dashboards/${path}`, { credentials: "include" });
+  if (!response.ok) await throwApiError(response, "Failed to fetch dashboard.");
+  return response.json();
+}
+
+export const getRequesterDashboard = () => getDashboard<RequesterDashboard>("requester");
+export const getStaffDashboard = () => getDashboard<StaffDashboard>("staff");
+export const getAdminDashboard = () => getDashboard<AdminDashboard>("admin");
+
 async function throwApiError(response: Response, fallback: string): Promise<never> {
   const data = await response.json().catch(() => null);
   throw new ApiError(
