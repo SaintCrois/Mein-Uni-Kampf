@@ -5,6 +5,8 @@ test("administrator opens user management and user creation form", async ({ page
   await page.getByLabel(/email address/i).fill("admin@example.com");
   await page.getByLabel(/^password$/i).fill("Password123!");
   await page.locator("form").getByRole("button", { name: /^sign in$/i }).click();
+  await expect(page.getByRole("heading", { name: /administrator dashboard/i })).toBeVisible();
+  await page.getByRole("button", { name: /^user management$/i }).first().click();
   await expect(page.getByRole("heading", { name: /user management/i })).toBeVisible();
   await page.getByRole("button", { name: /create new user/i }).click();
   await expect(page.getByRole("dialog")).toBeVisible();

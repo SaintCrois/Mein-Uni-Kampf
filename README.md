@@ -137,4 +137,12 @@ All seeded accounts use the default password: `Password123!`
 
 ### Playwright Multi-Viewport E2E Tests
 
+Create `server/.env.test` from `server/.env.test.example` and set
+`TEST_DATABASE_URL` to the dedicated `toktickit_test` database. The Playwright
+configuration refuses to run if that URL targets any other database.
+
+    npx playwright test e2e/lab-04/ --config=client/playwright.config.ts --workers=1
+
+To run the Lab 3 browser regression suite instead:
+
     npx playwright test e2e/lab-03/ --config=client/playwright.config.ts --workers=1

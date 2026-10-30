@@ -33,6 +33,9 @@ export async function checkSystem(): Promise<SystemStatus> {
   };
 }
 
+// Retained only because the isolated Lab 2 requester-selection fixture is
+// still compiled by the regression suite. The backing endpoint is unavailable
+// outside the server's test harness.
 export interface Requester {
   id: number;
   fullName: string;

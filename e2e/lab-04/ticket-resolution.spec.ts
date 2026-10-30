@@ -97,7 +97,7 @@ test.describe("Lab 4 E2E-WF: Ticket resolution workflow", () => {
       page.locator("p", { hasText: /advisory signal only/i }),
     ).toContainText("stays New");
 
-    if (testInfo.project.name === "desktop") {
+    if (testInfo.project.name !== "desktop") {
       const dir = path.join(
         testInfo.config.rootDir,
         "..",
@@ -107,7 +107,7 @@ test.describe("Lab 4 E2E-WF: Ticket resolution workflow", () => {
       );
       fs.mkdirSync(dir, { recursive: true });
       await page.screenshot({
-        path: path.join(dir, "resolution-requester-advisory.png"),
+        path: path.join(dir, `resolution-requester-advisory-${testInfo.project.name}.png`),
         fullPage: true,
       });
     }
@@ -164,7 +164,7 @@ test.describe("Lab 4 E2E-WF: Ticket resolution workflow", () => {
       page.getByRole("button", { name: /update status/i }),
     ).toHaveCount(0);
 
-    if (testInfo.project.name === "desktop") {
+    if (testInfo.project.name !== "desktop") {
       const dir = path.join(
         testInfo.config.rootDir,
         "..",
@@ -174,7 +174,7 @@ test.describe("Lab 4 E2E-WF: Ticket resolution workflow", () => {
       );
       fs.mkdirSync(dir, { recursive: true });
       await page.screenshot({
-        path: path.join(dir, "resolution-staff-closed.png"),
+        path: path.join(dir, `resolution-staff-closed-${testInfo.project.name}.png`),
         fullPage: true,
       });
     }
