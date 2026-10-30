@@ -3,6 +3,18 @@ import { getPrisma } from "../prisma.js";
 
 const router = Router();
 
+// Development requester selection was retired when authenticated identities
+// replaced it in Lab 3. Keep this endpoint available only for the isolated
+// Lab 2 compatibility tests; it must not expose requester identities at
+// runtime.
+router.use((_req, res, next) => {
+  if (process.env.NODE_ENV !== "test") {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  return next();
+});
+
 async function getActiveRequesters(_req: unknown, res: any) {
   try {
     const prisma = getPrisma();
