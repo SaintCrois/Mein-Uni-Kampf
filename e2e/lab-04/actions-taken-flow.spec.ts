@@ -115,7 +115,7 @@ test.describe("Lab 4 E2E-ACT: Actions Taken lifecycle", () => {
     await expect(item).toContainText(actionDescription);
     await expect(item).toContainText("Follow-Up Required");
 
-    if (testInfo.project.name === "desktop") {
+    if (testInfo.project.name !== "desktop") {
       const dir = path.join(
         testInfo.config.rootDir,
         "..",
@@ -125,7 +125,7 @@ test.describe("Lab 4 E2E-ACT: Actions Taken lifecycle", () => {
       );
       fs.mkdirSync(dir, { recursive: true });
       await page.screenshot({
-        path: path.join(dir, "actions-taken-staff.png"),
+        path: path.join(dir, `actions-taken-staff-${testInfo.project.name}.png`),
         fullPage: true,
       });
     }

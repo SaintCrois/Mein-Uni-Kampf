@@ -3,6 +3,7 @@ node_modules/
 # env & secrets
 .env
 *.env
+.env.test
 !.env.example
 # build output
 dist/
@@ -14,3 +15,4 @@ server/prisma/*.db
 .DS_Store
 server/uploads/
 test-results/
+artifacts/lab-04/Lab4_Paper_TokTickIT_completed_draft.docx
