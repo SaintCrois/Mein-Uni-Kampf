@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ApiError,
   createActionTaken,
@@ -153,6 +153,9 @@ export default function ActionsTaken({ ticketId, canManage }: ActionsTakenProps)
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogInvokerRef = useRef<HTMLElement | null>(null);
+  const wasDialogOpenRef = useRef(false);
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -182,6 +185,20 @@ export default function ActionsTaken({ ticketId, canManage }: ActionsTakenProps)
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const isDialogOpen = modalMode !== null || viewingAction !== null;
+
+    if (isDialogOpen && !wasDialogOpenRef.current) {
+      dialogInvokerRef.current = document.activeElement as HTMLElement | null;
+      dialogRef.current?.focus();
+    } else if (!isDialogOpen && wasDialogOpenRef.current) {
+      dialogInvokerRef.current?.focus();
+      dialogInvokerRef.current = null;
+    }
+
+    wasDialogOpenRef.current = isDialogOpen;
+  }, [modalMode, viewingAction]);
+
   function openCreate() {
     setForm(emptyForm());
     setFormErrors({});
@@ -204,6 +221,20 @@ export default function ActionsTaken({ ticketId, canManage }: ActionsTakenProps)
     setEditingAction(null);
     setFormErrors({});
     setFormError("");
+  }
+
+  function closeViewModal() {
+    setViewingAction(null);
+  }
+
+  function handleDialogKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    if (viewingAction) {
+      closeViewModal();
+    } else {
+      closeModal();
+    }
   }
 
   function setField<K extends keyof ActionFormState>(
@@ -469,6 +500,8 @@ export default function ActionsTaken({ ticketId, canManage }: ActionsTakenProps)
             aria-modal="true"
             aria-labelledby="view-action-title"
             tabIndex={-1}
+            ref={dialogRef}
+            onKeyDown={handleDialogKeyDown}
           >
             <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
               <div className="modal-content">
@@ -480,7 +513,7 @@ export default function ActionsTaken({ ticketId, canManage }: ActionsTakenProps)
                     type="button"
                     className="btn-close"
                     aria-label="Close"
-                    onClick={() => setViewingAction(null)}
+                    onClick={closeViewModal}
                   />
                 </div>
                 <div className="modal-body">
@@ -538,7 +571,7 @@ export default function ActionsTaken({ ticketId, canManage }: ActionsTakenProps)
                   <button
                     type="button"
                     className="btn btn-outline-secondary"
-                    onClick={() => setViewingAction(null)}
+                    onClick={closeViewModal}
                   >
                     Close
                   </button>
@@ -572,6 +605,8 @@ export default function ActionsTaken({ ticketId, canManage }: ActionsTakenProps)
             aria-modal="true"
             aria-labelledby="action-form-title"
             tabIndex={-1}
+            ref={dialogRef}
+            onKeyDown={handleDialogKeyDown}
           >
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <form className="modal-content" onSubmit={handleSubmit} noValidate>

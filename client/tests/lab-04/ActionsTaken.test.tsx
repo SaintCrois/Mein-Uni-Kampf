@@ -184,6 +184,22 @@ describe("Actions Taken display, ordering, and states", () => {
 });
 
 describe("UI-ACT-02: Requester read-only access and staff permissions", () => {
+  it("moves focus into a view dialog and supports Escape with focus restoration", async () => {
+    mockList([action()]);
+    render(<ActionsTaken ticketId={1} canManage={false} />);
+
+    const viewButton = await screen.findByRole("button", { name: "View" });
+    viewButton.focus();
+    fireEvent.click(viewButton);
+
+    const dialog = screen.getByRole("dialog");
+    await waitFor(() => expect(dialog).toHaveFocus());
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(viewButton).toHaveFocus();
+  });
+
   it("hides Add/Edit controls for read-only users while still listing actions and allowing View", async () => {
     mockList([
       action({
