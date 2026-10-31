@@ -10,11 +10,13 @@ import {
   createPublicComment,
   getInternalNotes,
   createInternalNote,
+  ApiError,
   type TicketDetail,
   type PublicComment,
   type InternalNote,
   type StaffAssignee,
 } from "../api";
+import ActionsTaken from "../components/ActionsTaken";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -23,13 +25,15 @@ type StaffTicketDetailProps = {
   onBack: () => void;
 };
 
+// Exact BR-11 status-transition matrix (Issue 23, docs/lab-04/specification.md).
+// Frontend only exposes permitted actions — the backend enforces this matrix.
 const allowedTransitionsMap: Record<string, string[]> = {
   New: ["Open", "Cancelled"],
   Open: ["In Progress", "Waiting for Requester", "Resolved", "Cancelled"],
   "In Progress": ["Open", "Waiting for Requester", "Resolved", "Cancelled"],
-  "Waiting for Requester": ["In Progress", "Open", "Resolved", "Cancelled"],
-  Resolved: ["Closed", "Reopened", "Cancelled"],
-  Reopened: ["In Progress", "Open", "Resolved", "Cancelled"],
+  "Waiting for Requester": ["In Progress", "Resolved", "Cancelled"],
+  Resolved: ["Closed", "Reopened"],
+  Reopened: ["In Progress", "Resolved", "Cancelled"],
   Closed: [],
   Cancelled: [],
 };
@@ -194,20 +198,42 @@ export default function StaffTicketDetail({
     }
   }
 
-  // Operations: Status Transition
-  async function handleUpdateStatus() {
-    if (!selectedNextStatus) return;
+  // Operations: Status Transition (final BR-11 matrix, backend enforced)
+  async function handleUpdateStatus(nextStatusOverride?: string) {
+    const targetStatus = nextStatusOverride ?? selectedNextStatus;
+    if (!targetStatus || !ticket) return;
+
+    // ui-spec §4: confirm terminal transitions to prevent accidents.
+    if (
+      (targetStatus === "Cancelled" || targetStatus === "Closed") &&
+      !window.confirm(
+        `You are about to transition this ticket to "${targetStatus}". This transition may end work on this ticket. Continue?`,
+      )
+    ) {
+      return;
+    }
+
     try {
       setError("");
       setOpSuccess("");
-      const updated = await updateTicketStatus(ticketId, selectedNextStatus);
-      setTicket(updated);
-      const validTransitions =
-        allowedTransitionsMap[updated.currentStatus.name] ?? [];
-      setSelectedNextStatus(validTransitions[0] ?? "");
-      setOpSuccess(`Status transitioned to "${updated.currentStatus.name}".`);
+      const result = await updateTicketStatus(
+        ticketId,
+        targetStatus,
+        ticket.updatedAt,
+      );
+      await loadData();
+      setOpSuccess(`Status transitioned to "${result.status}".`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status.");
+      const message =
+        err instanceof ApiError
+          ? err.status === 409
+            ? "This ticket was updated by someone else. The latest data has been loaded \u2014 please review and try again."
+            : err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to update status.";
+      await loadData();
+      setError(message);
     }
   }
 
@@ -337,12 +363,26 @@ export default function StaffTicketDetail({
         </span>
       </div>
 
-      {/* Requester Resolution Banner */}
+      {/* Requester Resolution Advisory Banner (BR-12: advisory only) */}
       {ticket.requesterResolvedIndicator && (
         <div className="alert alert-success d-flex align-items-center gap-2 mb-0" role="alert">
           <span className="fw-bold fs-5">&#10003;</span>
-          <div>
-            <strong>Problem Appears Resolved:</strong> The requester has indicated that this issue appears to be resolved. Please verify the solution and formally resolve or close this ticket.
+          <div className="flex-grow-1">
+            <strong>Requester has indicated this problem appears resolved.</strong>{" "}
+            This indication is advisory only &mdash; the ticket&rsquo;s formal status
+            is unchanged until IT Staff formally resolves it. Please review the
+            Actions Taken and formally resolve or close the ticket.
+            {validTransitions.includes("Resolved") && (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  className="btn btn-success btn-sm"
+                  onClick={() => handleUpdateStatus("Resolved")}
+                >
+                  Acknowledge &amp; Mark Resolved
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -462,6 +502,9 @@ export default function StaffTicketDetail({
               </div>
             </div>
           </div>
+
+          {/* Actions Taken (Lab 4 — Issue 25) */}
+          <ActionsTaken ticketId={ticketId} canManage />
 
           {/* Lifecycle Operations Card */}
           <div className="card shadow-sm border">
@@ -590,7 +633,7 @@ export default function StaffTicketDetail({
                         type="button"
                         className="btn btn-success btn-sm"
                         disabled={!selectedNextStatus}
-                        onClick={handleUpdateStatus}
+                        onClick={() => handleUpdateStatus()}
                       >
                         Update Status
                       </button>

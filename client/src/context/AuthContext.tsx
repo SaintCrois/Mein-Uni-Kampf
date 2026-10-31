@@ -100,3 +100,11 @@ export function useAuth(): AuthContextValue {
   return context;
 }
 
+/**
+ * Non-throwing variant for components that render both inside and outside an
+ * AuthProvider (e.g. unit tests rendering a page in isolation).
+ */
+export function useOptionalAuth(): AuthContextValue | null {
+  return useContext(AuthContext);
+}
+

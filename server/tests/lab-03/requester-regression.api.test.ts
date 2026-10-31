@@ -363,6 +363,10 @@ describe("Lab 3 - Issue 16: Requester Regression and Authenticated Identity", ()
     it("Requester can set the resolve indicator to true on their own ticket", async () => {
       const { ticket } = await getRequesterWithTicket("narin.chaiyo@example.com");
       const requesterCookie = await getSessionCookie("narin.chaiyo@example.com");
+      const statusBeforeUpdate = await prisma.ticket.findUniqueOrThrow({
+        where: { id: ticket.id },
+        include: { currentStatus: true },
+      });
 
       const response = await request(app)
         .post(`/api/tickets/${ticket.id}/resolve-indicator`)
@@ -371,15 +375,12 @@ describe("Lab 3 - Issue 16: Requester Regression and Authenticated Identity", ()
 
       expect(response.status).toBe(200);
       expect(response.body.data).toHaveProperty("requesterResolvedIndicator", true);
-      // The ticket status must NOT have changed to Resolved or Closed
+      // The advisory flag must never change the formal workflow status.
       const dbTicket = await prisma.ticket.findUniqueOrThrow({
         where: { id: ticket.id },
         include: { currentStatus: true },
       });
-      expect(["New", "Open", "In Progress", "Waiting for Requester", "Reopened"]).toContain(
-        dbTicket.currentStatus.name,
-      );
-      expect(["Resolved", "Closed"]).not.toContain(dbTicket.currentStatus.name);
+      expect(dbTicket.currentStatus.name).toBe(statusBeforeUpdate.currentStatus.name);
     });
 
     it("Requester can clear the resolve indicator (set to false)", async () => {

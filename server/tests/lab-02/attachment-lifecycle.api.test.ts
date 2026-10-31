@@ -131,6 +131,33 @@ describe("Attachment lifecycle", () => {
     expect(response.status).toBe(400);
   });
 
+  it("allows an Administrator to upload and soft-remove an attachment", async () => {
+    const { ticket } = await createTestTicket();
+    const administrator = await prisma.user.findFirstOrThrow({
+      where: { isActive: true, role: "ADMINISTRATOR" },
+      orderBy: { id: "asc" },
+    });
+
+    const uploadResponse = await request(app)
+      .post(`/api/tickets/${ticket.id}/attachments`)
+      .set("X-Requester-Id", String(administrator.id))
+      .attach("files", Buffer.from("administrator attachment"), {
+        filename: "administrator-upload.pdf",
+        contentType: "application/pdf",
+      });
+
+    expect(uploadResponse.status).toBe(201);
+    const attachmentId = uploadResponse.body.data[0].id;
+
+    const removalResponse = await request(app)
+      .delete(`/api/tickets/${ticket.id}/attachments/${attachmentId}`)
+      .set("X-Requester-Id", String(administrator.id))
+      .send({ reason: "Administrator removal verification" });
+
+    expect(removalResponse.status).toBe(200);
+    expect(removalResponse.body.data.status).toBe("REMOVED");
+  });
+
   it("soft-removes an attachment with a reason and blocks later download", async () => {
     const { requester, ticket } = await createTestTicket();
 

@@ -346,7 +346,8 @@ describe("Lab 3 - Issue 18: IT Staff Ticket Detail & Operations API", () => {
         .set("Cookie", staffCookie)
         .send({ status: "In Progress" });
       expect(step1.status).toBe(200);
-      expect(step1.body.currentStatus).toHaveProperty("name", "In Progress");
+      expect(step1.body.status).toBe("In Progress");
+      expect(step1.body).toHaveProperty("permittedNextStatuses");
 
       // 2. In Progress -> Resolved
       const step2 = await request(app)
@@ -354,7 +355,7 @@ describe("Lab 3 - Issue 18: IT Staff Ticket Detail & Operations API", () => {
         .set("Cookie", staffCookie)
         .send({ status: "Resolved" });
       expect(step2.status).toBe(200);
-      expect(step2.body.currentStatus).toHaveProperty("name", "Resolved");
+      expect(step2.body.status).toBe("Resolved");
 
       // 3. Resolved -> Closed
       const step3 = await request(app)
@@ -362,7 +363,7 @@ describe("Lab 3 - Issue 18: IT Staff Ticket Detail & Operations API", () => {
         .set("Cookie", staffCookie)
         .send({ status: "Closed" });
       expect(step3.status).toBe(200);
-      expect(step3.body.currentStatus).toHaveProperty("name", "Closed");
+      expect(step3.body.status).toBe("Closed");
     });
 
     it("API-STAFF-05: rejects invalid status transition New -> Closed with 400 Bad Request", async () => {
@@ -401,7 +402,7 @@ describe("Lab 3 - Issue 18: IT Staff Ticket Detail & Operations API", () => {
         .send({ status: "Reopened" });
 
       expect(response.status).toBe(200);
-      expect(response.body.currentStatus).toHaveProperty("name", "Reopened");
+      expect(response.body.status).toBe("Reopened");
     });
 
     it("supports transitioning to Waiting for Requester and back to In Progress", async () => {
@@ -414,7 +415,7 @@ describe("Lab 3 - Issue 18: IT Staff Ticket Detail & Operations API", () => {
         .set("Cookie", staffCookie)
         .send({ status: "Waiting for Requester" });
       expect(step1.status).toBe(200);
-      expect(step1.body.currentStatus).toHaveProperty("name", "Waiting for Requester");
+      expect(step1.body.status).toBe("Waiting for Requester");
 
       // Waiting for Requester -> In Progress
       const step2 = await request(app)
@@ -422,7 +423,7 @@ describe("Lab 3 - Issue 18: IT Staff Ticket Detail & Operations API", () => {
         .set("Cookie", staffCookie)
         .send({ status: "In Progress" });
       expect(step2.status).toBe(200);
-      expect(step2.body.currentStatus).toHaveProperty("name", "In Progress");
+      expect(step2.body.status).toBe("In Progress");
     });
 
     it("supports cancellation from non-closed state (Open -> Cancelled)", async () => {
@@ -435,7 +436,7 @@ describe("Lab 3 - Issue 18: IT Staff Ticket Detail & Operations API", () => {
         .send({ status: "Cancelled" });
 
       expect(response.status).toBe(200);
-      expect(response.body.currentStatus).toHaveProperty("name", "Cancelled");
+      expect(response.body.status).toBe("Cancelled");
     });
 
     it("rejects Requester role from updating ticket status with 403 Forbidden", async () => {

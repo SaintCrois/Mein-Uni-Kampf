@@ -1,0 +1,21 @@
+import { useEffect, useState } from "react";
+import { ApiError, getRequesterDashboard, type RequesterDashboard } from "../api";
+
+type Props = { onCreateTicket: () => void; onOpenTicket: (id: number) => void; onShowTickets: (status?: string) => void };
+const statusClass = (status: string) => ({ New: "bg-info text-dark", Open: "bg-primary", "In Progress": "bg-warning text-dark", "Waiting for Requester": "bg-secondary", Resolved: "bg-success", Closed: "bg-dark", Reopened: "bg-danger", Cancelled: "bg-light text-muted border" }[status] ?? "bg-secondary");
+
+export default function RequesterDashboard({ onCreateTicket, onOpenTicket, onShowTickets }: Props) {
+  const [data, setData] = useState<RequesterDashboard | null>(null); const [error, setError] = useState(""); const [forbidden, setForbidden] = useState(false); const [loading, setLoading] = useState(true);
+  const load = async () => { setLoading(true); setError(""); try { setData(await getRequesterDashboard()); setForbidden(false); } catch (e) { if (e instanceof ApiError && e.status === 403) setForbidden(true); else setError(e instanceof Error ? e.message : "Unable to load dashboard."); } finally { setLoading(false); } };
+  useEffect(() => { void load(); }, []);
+  if (loading) return <div className="alert alert-info" aria-live="polite">Loading dashboard...</div>;
+  if (forbidden) return <section className="alert alert-danger"><h2 className="h5">Access Forbidden</h2><p className="mb-0">You do not have permission to view the Requester Dashboard.</p></section>;
+  if (error) return <section className="alert alert-danger" role="alert"><p>{error}</p><button className="btn btn-outline-danger btn-sm" onClick={() => void load()}>Retry</button></section>;
+  if (!data) return null;
+  const cards = [["Open Tickets", data.metrics.totalOpenTickets, undefined, ""], ["Waiting for Your Input", data.metrics.ticketsWaitingForRequester, "Waiting for Requester", "border-warning"], ["Recently Resolved", data.metrics.recentlyResolvedTickets, "Resolved", "border-success"], ["Action Needed", data.metrics.attentionRequiredTickets, "Waiting for Requester", "border-warning"]] as const;
+  return <section>
+    <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4"><div><h2 className="h3 mb-1">Requester Dashboard</h2><p className="text-muted mb-0">Overview of your support requests</p></div><button className="btn btn-success" onClick={onCreateTicket}>+ Create New Ticket</button></div>
+    <div className="row g-3 mb-4">{cards.map(([label, value, filter, accent]) => <div className="col-12 col-sm-6 col-xl-3" key={label}><button className={`card metric-card h-100 w-100 text-start ${accent}`} onClick={() => onShowTickets(filter)} aria-label={`${label}: ${value}. View matching tickets`}><div className="card-body"><div className="text-muted small">{label}</div><div className="display-6 fw-bold">{value}</div><span className="small text-success">View tickets →</span></div></button></div>)}</div>
+    {data.recentTickets.length === 0 ? <div className="card"><div className="card-body text-center py-5"><h3 className="h5">No support requests found</h3><p className="text-muted">Create your first ticket when you need IT support.</p><button className="btn btn-success" onClick={onCreateTicket}>Create Your First Ticket</button></div></div> : <div className="card overflow-hidden"><div className="card-header bg-white"><h3 className="h5 mb-0">Recent Tickets</h3></div><div className="table-responsive"><table className="table table-hover align-middle mb-0"><thead><tr><th>Ticket Number</th><th>Updated</th><th>Summary</th><th>Category</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead><tbody>{data.recentTickets.map((ticket) => <tr key={ticket.id}><td><button className="btn btn-link p-0 fw-semibold" onClick={() => onOpenTicket(ticket.id)}>{ticket.ticketNumber}</button></td><td>{new Date(ticket.updatedAt).toLocaleDateString()}</td><td>{ticket.summary}</td><td>{ticket.category}</td><td>{ticket.requestedPriority}</td><td><span className={`badge ${statusClass(ticket.status)}`}>{ticket.status}</span></td><td>{ticket.actionsCount} logged</td></tr>)}</tbody></table></div></div>}
+  </section>;
+}

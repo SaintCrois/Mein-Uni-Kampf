@@ -9,6 +9,7 @@ import attachmentsRouter from "./routes/attachments.js";
 import authRouter from "./routes/auth.js";
 import staffRouter from "./routes/staff.js";
 import adminRouter from "./routes/admin.js";
+import dashboardsRouter from "./routes/dashboards.js";
 import { requireAuthUnlessLegacyTest } from "./middleware/requester.js";
 
 
@@ -37,6 +38,7 @@ app.use("/api", referenceRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/staff", staffRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/dashboards", dashboardsRouter);
 
 
 
